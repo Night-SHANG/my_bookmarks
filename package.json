@@ -6,7 +6,8 @@
     "test": "node --test tests/*.test.cjs",
     "preflight": "node scripts/preflight.cjs",
     "build": "npm run preflight && node scripts/build.cjs",
-    "dev": "node scripts/serve.cjs"
+    "dev": "node scripts/serve.cjs",
+    "test:browser": "playwright test"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
   },
   "homepage": "https://github.com/Night-SHANG/my_bookmarks#readme",
   "devDependencies": {
+    "@playwright/test": "1.56.1",
     "jsdom": "26.1.0"
   },
   "private": true
