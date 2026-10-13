@@ -28,7 +28,7 @@ test('real add edit cancel delete and persistence',async({page})=>{
 test('mobile layout category navigation and management controls',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/');await page.locator('#demoBtn').click();await ready(page);await capture(page,'mobile-grid');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
- await page.locator('.cat-chip').filter({hasText:'开发工具'}).click();await expect(page.locator('.bookmark-card')).toHaveCount(3);await page.locator('#addBtn').click();await expect(page.locator('#siteTitle')).toBeVisible();await capture(page,'mobile-add');await page.locator('#modalCancelBtn').click();await expect(page.locator('#modal')).not.toHaveClass(/show/);
+ await page.locator('.cat-chip').filter({hasText:'开发工具'}).click();await expect(page.locator('#bookmarkCount')).toContainText('3 个站点');await expect(page.locator('.bookmark-card')).toHaveCount(Math.min(3,Number(await page.locator('#bookmarksGrid').getAttribute('data-page-size'))));await page.locator('#addBtn').click();await expect(page.locator('#siteTitle')).toBeVisible();await capture(page,'mobile-add');await page.locator('#modalCancelBtn').click();await expect(page.locator('#modal')).not.toHaveClass(/show/);
  await page.locator('#appearanceBtn').click();await expect(page.locator('#colsIncrease')).toBeVisible();
 });
 test('import validates before replacing and restore retains old data',async({page})=>{

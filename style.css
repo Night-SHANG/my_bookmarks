@@ -1632,3 +1632,223 @@ button:focus-visible,a:focus-visible{
 [data-theme="dark"] .btn-icon:hover,
 [data-theme="dark"] .btn-ghost:hover,
 [data-theme="dark"] .action-btn:hover { color: var(--text-primary); }
+
+/* Compact, viewport-sized pages. Pagination owns overflow; cards never scroll. */
+:root { --columns: 4; }
+html, body { height: 100%; min-height: 100%; overflow: auto; }
+.app {
+  grid-template-columns: 216px minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.sidebar {
+  position: static;
+  height: 100%;
+  min-height: 0;
+  padding: 24px 14px 16px;
+  gap: 24px;
+}
+.brand { gap: 13px; padding: 0 8px; }
+.brand > i { font-size: 33px; margin-top: 2px; }
+.brand h1 { font-size: 22px; line-height: 1.4; }
+.brand p { font-size: 13px; }
+.category-bar { gap: 5px; }
+.cat-chip {
+  min-height: 42px;
+  padding: 8px 12px;
+  gap: 12px;
+  font-size: 14px;
+}
+.cat-chip i { width: 20px; font-size: 17px; }
+.cat-chip .cat-count { font-size: 12px; }
+.sidebar-footer { padding-top: 10px; }
+.sidebar-action { gap: 12px; padding: 10px 12px; font-size: 14px; }
+.sidebar-action i { width: 20px; font-size: 17px; }
+.workspace {
+  max-width: none;
+  min-height: 0;
+  padding: 24px 28px 14px;
+  overflow: hidden;
+}
+.header {
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+}
+.header-intro { min-width: 0; }
+.header h2 { font-size: 28px; line-height: 1.35; }
+.header p { margin-top: 3px; font-size: 15px; }
+.header-actions { gap: 16px; flex-shrink: 0; flex-wrap: nowrap; }
+.header .btn-primary { min-height: 42px; padding: 9px 16px; font-size: 15px; }
+.columns-toolbar { display: flex; align-items: center; gap: 10px; }
+.columns-label { color: var(--text-secondary); font-size: 13px; }
+.grid-control { padding: 0; gap: 0; background: var(--bg-card); border-radius: 8px; }
+.grid-control .btn-icon { width: 34px; height: 36px; border-radius: 7px; }
+.cols-display { min-width: 44px; font-size: 13px; }
+.search-section { margin-bottom: 18px; }
+.search-input { height: 48px; padding: 11px 50px; border-radius: 10px; font-size: 15px; }
+.search-icon { left: 18px; font-size: 18px; }
+.search-kbd { right: 16px; }
+.engine-row { margin-top: 10px; gap: 12px; font-size: 13px; }
+.engine-tabs { gap: 8px; }
+.engine-tab { padding: 5px 16px; font-size: 13px; }
+.collection { display: flex; flex: 1 1 0; flex-direction: column; min-height: 0; }
+.collection-heading { margin-bottom: 12px; gap: 12px; flex-shrink: 0; }
+.collection-heading > div:first-child { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 14px; min-width: 0; }
+.collection-heading h2 { font-size: 21px; flex-shrink: 0; }
+.collection-heading p { margin: 0; font-size: 13px; }
+.view-switch { flex-shrink: 0; border-radius: 9px; }
+.view-switch button { width: 40px; height: 32px; border-radius: 7px; font-size: 16px; }
+.bookmarks-grid {
+  --card-height: 94px;
+  flex: 1 1 0;
+  min-height: 0;
+  grid-template-columns: repeat(var(--columns, 4), minmax(0, 1fr));
+  grid-auto-rows: var(--card-height);
+  gap: 12px;
+  padding: 0;
+  overflow: visible;
+  align-content: start;
+}
+.bookmark-card {
+  height: var(--card-height);
+  min-height: 0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  gap: 12px;
+}
+.favicon { width: 40px; height: 40px; border-radius: 8px; }
+.favicon img { width: 36px; height: 36px; }
+.card-title { font-size: 16px; line-height: 1.5; padding-right: 15px; }
+.card-desc, .card-url { font-size: 13px; line-height: 1.45; margin-top: 2px; }
+.card-actions { top: 5px; right: 5px; }
+.list-view { --card-height: 68px; grid-template-columns: minmax(0, 1fr); }
+.list-view .bookmark-card { min-height: 0; padding: 9px 14px; }
+.list-view .meta { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 20px; padding-right: 26px; }
+.list-view .card-desc, .list-view .card-url { margin: 0; }
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  padding-top: 14px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.pagination[hidden] { display: none; }
+.page-summary { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.pagination-controls, .page-numbers { display: flex; align-items: center; justify-content: center; gap: 7px; max-width: 100%; }
+.pagination-controls { flex-wrap: wrap; }
+.page-numbers { flex-wrap: wrap; }
+.pagination button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pagination button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.pagination button.active,
+.pagination button[aria-current="page"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+}
+.pagination button.active:hover,
+.pagination button[aria-current="page"]:hover { color: var(--text-on-accent); }
+.pagination button:disabled { background: var(--bg-subtle); color: var(--text-muted); opacity: .55; cursor: not-allowed; }
+.page-numbers > span { color: var(--text-secondary); padding: 0 2px; }
+.workspace-footer { flex-shrink: 0; padding-top: 12px; gap: 8px 18px; font-size: 11px; }
+.workspace-footer i { margin-right: 7px; }
+.workspace-footer button { font-size: 11px; }
+.empty-state { min-height: 0; padding: 20px; }
+.no-results { grid-column: 1 / -1; align-self: center; }
+.storage-warning { flex-shrink: 0; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }
+.modal-content { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* A short viewport uses a single, complete card row and natural page scrolling. */
+.app.compact-fallback { height: auto; min-height: 100dvh; overflow: visible; }
+.compact-fallback .sidebar { height: auto; min-height: 100dvh; }
+.compact-fallback .sidebar .category-bar { flex: 0 0 auto; }
+.compact-fallback .workspace { overflow: visible; }
+.compact-fallback .collection { flex: 0 0 auto; }
+.compact-fallback .bookmarks-grid { flex: 0 0 auto; height: var(--card-height); min-height: var(--card-height); }
+
+@media (min-width: 701px) and (max-width: 1100px) {
+  .workspace { padding: 22px 22px 14px; }
+  .header h2 { font-size: 24px; }
+  .header-actions { gap: 12px; }
+  .header .btn-primary { padding: 9px 13px; }
+  .bookmark-card { padding: 12px; gap: 10px; }
+  .favicon { width: 36px; height: 36px; }
+  .favicon img { width: 32px; height: 32px; }
+  .pagination { gap: 12px; }
+}
+@media (max-width: 700px) {
+  .app { height: auto; min-height: 100dvh; overflow: visible; }
+  .sidebar, .compact-fallback .sidebar { height: auto; min-height: 0; padding: 18px 18px 0; gap: 14px; }
+  .brand { padding: 0; }
+  .brand h1 { font-size: 22px; }
+  .brand p { font-size: 12px; }
+  .category-bar { gap: 7px; }
+  .cat-chip { min-height: 40px; padding: 8px 12px; gap: 8px; font-size: 13px; }
+  .cat-chip i { width: 16px; font-size: 14px; }
+  .sidebar-footer { padding: 0; }
+  .sidebar-action { padding: 8px 10px; font-size: 12px; gap: 8px; }
+  .sidebar-action i { width: 14px; font-size: 14px; }
+  .workspace { padding: 18px; overflow: visible; }
+  .header { gap: 14px; margin-bottom: 16px; }
+  .header-intro { width: 100%; }
+  .header h2 { font-size: 23px; }
+  .header p { font-size: 13px; }
+  .header-actions { width: 100%; justify-content: space-between; gap: 12px; }
+  .header .btn-primary { min-height: 40px; font-size: 13px; padding: 9px 13px; }
+  .columns-toolbar { gap: 8px; }
+  .columns-label { font-size: 12px; }
+  .search-input { height: 48px; padding-left: 44px; font-size: 14px; }
+  .search-icon { left: 16px; font-size: 16px; }
+  .engine-row { gap: 8px; font-size: 12px; }
+  .engine-tabs { gap: 7px; }
+  .engine-tab { padding: 5px 12px; font-size: 12px; }
+  .search-section { margin-bottom: 16px; }
+  .collection { flex: 0 0 auto; }
+  .collection-heading { margin-bottom: 12px; gap: 10px; }
+  .collection-heading > div:first-child { display: block; }
+  .collection-heading h2 { font-size: 20px; }
+  .collection-heading p { margin-top: 2px; font-size: 12px; }
+  .view-switch button { width: 35px; height: 32px; }
+  .bookmarks-grid { flex: 0 0 auto; height: var(--card-height); min-height: var(--card-height); }
+  .bookmark-card { padding: 12px; gap: 10px; }
+  .favicon { width: 34px; height: 34px; }
+  .favicon img { width: 30px; height: 30px; }
+  .card-title { font-size: 16px; }
+  .card-desc, .card-url { font-size: 13px; }
+  .list-view { --card-height: 72px; }
+  .list-view .bookmark-card { min-height: 0; padding: 4px 12px; }
+  .list-view .meta { display: flex; align-items: stretch; gap: 0; padding-right: 12px; }
+  .list-view .card-title { margin: 0; }
+  .pagination { flex-direction: column; gap: 9px; padding-top: 16px; }
+  .pagination-controls, .page-numbers { gap: 5px; }
+  .pagination button { min-width: 32px; height: 36px; padding: 0 9px; font-size: 13px; }
+  .page-numbers > span { padding: 0; }
+  .workspace-footer { padding-top: 18px; gap: 8px 14px; }
+}
+@media (max-width: 360px) {
+  .workspace { padding-left: 14px; padding-right: 14px; }
+  .pagination-controls, .page-numbers { gap: 4px; }
+  .pagination button { min-width: 28px; padding: 0 7px; }
+}

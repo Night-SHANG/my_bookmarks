@@ -24,6 +24,10 @@ let bookmarks = load();
 let currentCategory = '全部';
 let currentEngine = 'baidu';
 let searchQuery = '';
+let currentPage = 1;
+let totalPages = 1;
+let pageSize = 1;
+let initialized = false;
 
 // ========== DOM 引用 ==========
 const bookmarksGrid = document.getElementById('bookmarksGrid');
@@ -83,8 +87,8 @@ function load() {
 // ========== 列数控制（最少3列，最多10列） ==========
 
 function getColumns() {
-    const saved = parseInt(readSetting(COLUMNS_KEY, '3'), 10);
-    return Number.isFinite(saved) ? Math.max(3, Math.min(10, saved)) : 3;
+    const saved = parseInt(readSetting(COLUMNS_KEY, '4'), 10);
+    return Number.isFinite(saved) ? Math.max(3, Math.min(10, saved)) : 4;
 }
 
 function setColumns(n) {
@@ -92,20 +96,69 @@ function setColumns(n) {
     writeSetting(COLUMNS_KEY, n);
     colsDisplay.textContent = n + '列';
     applyEffectiveColumns();
+    if (initialized) renderBookmarks();
 }
 
-// 响应式：根据窗口宽度自动调整实际列数（卡片最小180px宽）
+// Keep the saved preference; narrow windows may display fewer columns.
 function applyEffectiveColumns() {
-    const userCols = getColumns();
     const gridWidth = bookmarksGrid.clientWidth || window.innerWidth - 56;
-    const minCardWidth = window.innerWidth <= 700 ? 165 : 265;
-    const gap = 17;
+    const style = getComputedStyle(bookmarksGrid);
+    const gap = parseFloat(style.columnGap) || 12;
+    const minCardWidth = window.innerWidth <= 700 ? 165 : 220;
     const maxFit = Math.floor((gridWidth + gap) / (minCardWidth + gap));
-    const actual = Math.min(userCols, Math.max(1, maxFit));
+    const actual = Math.min(getColumns(), Math.max(1, maxFit));
     document.documentElement.style.setProperty('--columns', actual);
+    return actual;
 }
 
-window.addEventListener('resize', applyEffectiveColumns);
+function measurePageSize() {
+    const columns = bookmarksGrid.classList.contains('list-view') ? 1 : applyEffectiveColumns();
+    const style = getComputedStyle(bookmarksGrid);
+    const cardHeight = parseFloat(style.getPropertyValue('--card-height')) || (bookmarksGrid.classList.contains('list-view') ? 68 : 94);
+    const gap = parseFloat(style.rowGap) || 12;
+    // Natural-height fallback still paginates, one row at a time. Never derive
+    // capacity from a grid whose own rendered content determines its height.
+    const app = document.querySelector('.app');
+    if (window.innerWidth <= 700 || app.classList.contains('compact-fallback')) return columns;
+    const height = bookmarksGrid.clientHeight;
+    if (bookmarksGrid.clientWidth > 0 && height < cardHeight) {
+        app.classList.add('compact-fallback');
+        return columns;
+    }
+    const available = height || Math.max(cardHeight, window.innerHeight - 300);
+    return columns * Math.max(1, Math.floor((available + gap) / (cardHeight + gap)));
+}
+
+function renderPagination(total) {
+    const nav = document.getElementById('pagination');
+    if (!nav) return;
+    nav.hidden = total === 0;
+    document.getElementById('prevPage').disabled = currentPage <= 1;
+    document.getElementById('nextPage').disabled = currentPage >= totalPages;
+    document.getElementById('pageSummary').textContent = `共 ${total} 个站点 · 第 ${currentPage}/${totalPages} 页`;
+    const numbers = document.getElementById('pageNumbers');
+    numbers.replaceChildren();
+    // Keep page navigation bounded even with thousands of bookmarks.
+    const pages = [...new Set([1, currentPage - 1, currentPage, currentPage + 1, totalPages])].filter(n => n >= 1 && n <= totalPages).sort((a,b) => a-b);
+    let previous = 0;
+    for (const page of pages) {
+        if (previous && page > previous + 1) { const dots = document.createElement('span'); dots.textContent = '…'; dots.setAttribute('aria-hidden','true'); numbers.appendChild(dots); }
+        const button = document.createElement('button');
+        button.type = 'button'; button.textContent = page; button.setAttribute('aria-label', `第 ${page} 页`);
+        if (page === currentPage) { button.className = 'active'; button.setAttribute('aria-current','page'); }
+        button.addEventListener('click', () => { currentPage = page; renderBookmarks(); numbers.querySelector('[aria-current="page"]')?.focus(); });
+        numbers.appendChild(button); previous = page;
+    }
+    const status = document.getElementById('paginationStatus');
+    if (status) status.textContent = `第 ${currentPage} 页，共 ${totalPages} 页，本页 ${Math.min(pageSize, Math.max(0, total - (currentPage - 1) * pageSize))} 项`;
+}
+
+function refreshPageLayout() {
+    document.querySelector('.app').classList.remove('compact-fallback');
+    applyEffectiveColumns();
+    renderBookmarks();
+}
+window.addEventListener('resize', refreshPageLayout);
 
 document.getElementById('colsIncrease').addEventListener('click', () => setColumns(getColumns() + 1));
 document.getElementById('colsDecrease').addEventListener('click', () => setColumns(getColumns() - 1));
@@ -280,7 +333,7 @@ function renderCategories() {
         chip.setAttribute('aria-pressed', cat === currentCategory);
         chip.draggable = true;
 
-        chip.addEventListener('click', () => { currentCategory = cat; renderAll(); });
+        chip.addEventListener('click', () => { currentCategory = cat; currentPage = 1; renderAll(); });
 
         chip.addEventListener('dragstart', handleCategoryDragStart);
         chip.addEventListener('dragend', handleCategoryDragEnd);
@@ -297,6 +350,7 @@ function renderCategories() {
 
 function renderBookmarks() {
     bookmarksGrid.innerHTML = '';
+    bookmarksGrid.style.display = 'grid';
 
     const list = bookmarks.filter(b => {
         if (currentCategory && currentCategory !== '全部' && (b.category || '未分类') !== currentCategory) return false;
@@ -309,6 +363,14 @@ function renderBookmarks() {
         }
         return true;
     });
+
+    pageSize = measurePageSize();
+    totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+    currentPage = Math.max(1, Math.min(currentPage, totalPages));
+    bookmarksGrid.dataset.page = currentPage;
+    bookmarksGrid.dataset.pageSize = pageSize;
+    bookmarksGrid.dataset.totalPages = totalPages;
+    renderPagination(list.length);
 
     document.getElementById('collectionTitle').textContent = currentCategory === '全部' ? '全部书签' : currentCategory;
     document.getElementById('bookmarkCount').textContent = `${list.length} 个站点${searchQuery ? ' · 搜索结果' : ''}${demoMode ? ' · 演示数据（不会写入收藏）' : ''}`;
@@ -330,7 +392,7 @@ function renderBookmarks() {
         return;
     }
 
-    list.forEach(b => {
+    list.slice((currentPage - 1) * pageSize, currentPage * pageSize).forEach(b => {
         const card = document.createElement('a');
         card.href = b.url;
         card.target = '_blank';
@@ -456,6 +518,7 @@ const engines = {
 
 searchInput.addEventListener('input', () => {
     searchQuery = searchInput.value.trim();
+    currentPage = 1;
     renderBookmarks();
 });
 
@@ -752,7 +815,7 @@ document.addEventListener('keydown', (e) => {
             } else if (document.activeElement === searchInput) {
                 searchInput.blur();
                 searchInput.value = '';
-                searchQuery = '';
+                searchQuery = ''; currentPage = 1;
                 renderBookmarks();
             }
         }
@@ -769,7 +832,8 @@ function isInputFocused() {
 initTheme();
 initAccent();
 setColumns(getColumns());
-
+applyView(readSetting('nav_view', 'grid'));
+initialized = true;
 renderAll();
 
 // 自动聚焦搜索框
@@ -799,7 +863,7 @@ function importBookmarks(data, restoring = false) {
             throw error;
         }
     } catch (e) { showToast('导入未完成：无法保存备份或新数据，当前收藏未改变；较早备份仍保留', 'error'); return false; }
-    bookmarks = next; storageDamaged = false; currentCategory = '全部';
+    bookmarks = next; storageDamaged = false; currentCategory = '全部'; currentPage = 1;
     document.getElementById('storageWarning').hidden = true;
     renderAll(); showToast(`导入成功，共 ${next.length} 个书签`, 'success'); return true;
 }
@@ -808,8 +872,8 @@ function applyView(view) {
     bookmarksGrid.classList.toggle('list-view', view === 'list');
     ['grid','list'].forEach(name => { const button = document.getElementById(name + 'ViewBtn'); button.classList.toggle('active', name === view); button.setAttribute('aria-pressed', name === view); });
     writeSetting('nav_view', view);
+    currentPage = 1; if (initialized) refreshPageLayout();
 }
-applyView(readSetting('nav_view', 'grid'));
 document.getElementById('gridViewBtn').addEventListener('click', () => applyView('grid'));
 document.getElementById('listViewBtn').addEventListener('click', () => applyView('list'));
 for (const [buttonId, panelId] of [['dataPanelBtn','dataPanel'],['appearanceBtn','appearancePanel']]) {
@@ -830,7 +894,7 @@ const DEMO_BOOKMARKS = [
 document.getElementById('demoBtn').addEventListener('click', () => {
     if (!demoMode) { demoOriginal = bookmarks; bookmarks = DEMO_BOOKMARKS.map(b => ({...b})); demoMode = true; }
     else { bookmarks = demoOriginal; demoOriginal = null; demoMode = false; }
-    currentCategory = '全部'; searchInput.value = ''; searchQuery = '';
+    currentCategory = '全部'; currentPage = 1; searchInput.value = ''; searchQuery = '';
     document.getElementById('demoBtn').textContent = demoMode ? '退出演示，回到我的收藏' : '体验演示数据';
     renderAll();
 });
@@ -842,3 +906,15 @@ modal.addEventListener('keydown', e => {
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 });
+
+// Page controls never modify bookmark data or persisted column preferences.
+document.getElementById('prevPage').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderBookmarks(); } });
+document.getElementById('nextPage').addEventListener('click', () => { if (currentPage < totalPages) { currentPage++; renderBookmarks(); } });
+if (document.fonts?.ready) document.fonts.ready.then(refreshPageLayout);
+if (typeof ResizeObserver !== 'undefined') {
+    let previousSize = '';
+    new ResizeObserver(() => {
+        const size = `${bookmarksGrid.clientWidth}:${bookmarksGrid.clientHeight}`;
+        if (size !== previousSize) { previousSize = size; renderBookmarks(); }
+    }).observe(bookmarksGrid);
+}

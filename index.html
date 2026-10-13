@@ -20,15 +20,7 @@
    <button class="sidebar-action" id="dataPanelBtn" aria-expanded="false"><i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i>导入 / 导出</button>
    <div class="utility-panel" id="dataPanel" hidden><button class="btn btn-ghost" id="importBtn">导入 JSON</button><button class="btn btn-ghost" id="exportBtn">导出 JSON</button><button class="btn btn-ghost" id="restoreBtn">恢复上次备份</button><p>导入会替换收藏，并保留一份本地备份。</p></div>
    <button class="sidebar-action" id="appearanceBtn" aria-expanded="false"><i class="fas fa-gear" aria-hidden="true"></i>外观设置</button>
-   <div class="utility-panel appearance-panel" id="appearancePanel" hidden>                <div class="grid-control">
-                    <button class="btn btn-icon" id="colsDecrease" title="减少列数">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                    <span class="cols-display" id="colsDisplay">4列</span>
-                    <button class="btn btn-icon" id="colsIncrease" title="增加列数">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
+   <div class="utility-panel appearance-panel" id="appearancePanel" hidden>
                 <div class="color-picker-wrapper">
                     <button class="btn btn-icon" id="colorPickerBtn" title="自定义主题色">
                         <i class="fas fa-palette"></i>
@@ -57,7 +49,17 @@
   </div>
  </aside>
  <div class="workspace">
-  <header class="header"><div><h2>收藏，让灵感随手可达。</h2><p>常用网站，有序收藏。</p></div><button class="btn btn-primary" id="addBtn"><i class="fas fa-plus" aria-hidden="true"></i><span>添加站点</span></button></header>
+  <header class="header">
+   <div class="header-intro"><h2>收藏，让灵感随手可达。</h2><p>常用网站，有序收藏。</p></div>
+   <div class="header-actions">
+    <div class="columns-toolbar"><span class="columns-label" id="columnsLabel">列数</span><div class="grid-control" role="group" aria-labelledby="columnsLabel">
+     <button class="btn btn-icon" id="colsDecrease" title="减少列数" aria-label="减少列数" type="button"><i class="fas fa-minus" aria-hidden="true"></i></button>
+     <span class="cols-display" id="colsDisplay" aria-live="polite">4列</span>
+     <button class="btn btn-icon" id="colsIncrease" title="增加列数" aria-label="增加列数" type="button"><i class="fas fa-plus" aria-hidden="true"></i></button>
+    </div></div>
+    <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus" aria-hidden="true"></i><span>添加站点</span></button>
+   </div>
+  </header>
   <div id="storageWarning" class="storage-warning" role="alert" hidden></div>
   <section class="search-section" aria-label="查找网站">
    <div class="search-wrapper"><i class="fas fa-search search-icon" aria-hidden="true"></i><input type="search" id="searchInput" class="search-input" placeholder="搜索书签、描述或网址…" aria-label="搜索书签、描述或网址" autocomplete="off"><kbd class="search-kbd">/</kbd></div>
@@ -66,9 +68,18 @@
   <section class="collection" aria-label="收藏网站">
    <div class="collection-heading"><div><h2 id="collectionTitle">全部书签</h2><p id="bookmarkCount" aria-live="polite"></p></div><div class="view-switch" aria-label="显示方式"><button id="gridViewBtn" class="active" title="网格视图" aria-label="网格视图" aria-pressed="true"><i class="fas fa-th-large" aria-hidden="true"></i></button><button id="listViewBtn" title="列表视图" aria-label="列表视图" aria-pressed="false"><i class="fas fa-list" aria-hidden="true"></i></button></div></div>
    <main class="bookmarks-grid" id="bookmarksGrid"></main>
+   <nav class="pagination" id="pagination" aria-label="书签分页">
+    <span class="page-summary" id="pageSummary"></span>
+    <div class="pagination-controls">
+     <button class="page-button" id="prevPage" type="button" aria-label="上一页" disabled>上一页</button>
+     <div class="page-numbers" id="pageNumbers"></div>
+     <button class="page-button" id="nextPage" type="button" aria-label="下一页">下一页</button>
+    </div>
+   </nav>
+   <span class="sr-only" id="paginationStatus" role="status" aria-live="polite" aria-atomic="true"></span>
    <div class="empty-state" id="emptyState" style="display:none"><i class="far fa-bookmark" aria-hidden="true"></i><h3>收藏你的第一个网站</h3><p>点击「添加站点」，把常用网站放在这里。</p></div>
   </section>
-  <footer class="workspace-footer"><span><i class="fas fa-grip-vertical" aria-hidden="true"></i>拖动调整顺序</span><span>数据保存在此浏览器</span><button id="demoBtn">体验演示数据</button><span class="version">v1.0.0-preview</span></footer>
+  <footer class="workspace-footer"><span><i class="fas fa-grip-vertical" aria-hidden="true"></i>拖动调整顺序</span><span>数据保存在此浏览器</span><button id="demoBtn">体验演示数据</button><span class="version">v1.1.0-preview</span></footer>
  </div>
 </div>
     <!-- 模态框：添加/编辑 -->
