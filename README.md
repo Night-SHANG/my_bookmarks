@@ -37,3 +37,14 @@ npm run build
 测试开发依赖 jsdom 26.1.0（MIT），不随运行时静态包发布。原仓库未声明项目整体开源许可证，本次不代替作者授予新许可。
 
 设计与验证范围见 `docs/design-and-validation.md`，视觉验收状态见 `design-qa.md`。
+
+## Chromium 运行时回归
+
+开发依赖固定 `@playwright/test` 1.56.1（Apache-2.0）。在支持 Chromium 的环境运行：
+
+```sh
+npx playwright install --with-deps chromium
+npm run test:browser
+```
+
+开发分支 GitHub Actions 自动运行 24 项快速回归与 5 组真实浏览器用例，并上传桌面、手机、弹窗、长分类与深色截图。浏览器测试只使用内置演示/测试数据，不需要账户或额外 Secrets，也不部署线上。

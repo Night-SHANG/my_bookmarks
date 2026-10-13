@@ -1628,3 +1628,7 @@ button:focus-visible,a:focus-visible{
 [data-theme="dark"] .workspace-footer button { color: var(--text-primary); }
 [data-theme="dark"] .favicon { background: #f4f7f3; padding: 5px; }
 [data-theme="dark"] .favicon img { max-width: 100%; max-height: 100%; }
+
+[data-theme="dark"] .btn-icon:hover,
+[data-theme="dark"] .btn-ghost:hover,
+[data-theme="dark"] .action-btn:hover { color: var(--text-primary); }

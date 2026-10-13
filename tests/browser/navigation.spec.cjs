@@ -13,7 +13,10 @@ test('desktop approved design, filters, list and no runtime exceptions',async({p
  await page.locator('.cat-chip').filter({hasText:'全部书签'}).click();await page.getByRole('searchbox').fill('GitHub');await expect(page.locator('.bookmark-card')).toHaveCount(1);
  await page.getByRole('searchbox').fill('');await page.getByRole('button',{name:'列表视图',exact:true}).click();await expect(page.locator('#bookmarksGrid')).toHaveClass(/list-view/);await capture(page,'desktop-list');
  await page.getByRole('button',{name:'外观设置',exact:true}).click();await page.locator('#themeToggle').click();await expect(page.locator('html')).toHaveAttribute('data-theme','dark');await capture(page,'desktop-dark');
- const ratio=await page.locator('.cat-chip.active').evaluate(el=>{const st=getComputedStyle(el);const lum=c=>{const v=c.match(/[\d.]+/g).slice(0,3).map(Number).map(x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4});return .2126*v[0]+.7152*v[1]+.0722*v[2]};const a=lum(st.color),b=lum(st.backgroundColor);return(Math.max(a,b)+.05)/(Math.min(a,b)+.05)});expect(ratio).toBeGreaterThanOrEqual(4.5);expect(errors).toEqual([]);
+ const ratio=await page.locator('.cat-chip.active').evaluate(el=>{const st=getComputedStyle(el);const lum=c=>{const v=c.match(/[\d.]+/g).slice(0,3).map(Number).map(x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4});return .2126*v[0]+.7152*v[1]+.0722*v[2]};const a=lum(st.color),b=lum(st.backgroundColor);return(Math.max(a,b)+.05)/(Math.min(a,b)+.05)});expect(ratio).toBeGreaterThanOrEqual(4.5);
+ await page.locator('#themeToggle').hover();
+ const hoverColor=await page.locator('#themeToggle').evaluate(el=>({actual:getComputedStyle(el).color,expected:getComputedStyle(el).getPropertyValue('--text-primary').trim()}));
+ expect(hoverColor.actual).toBe('rgb(237, 244, 238)');expect(errors).toEqual([]);
 });
 test('real add edit cancel delete and persistence',async({page})=>{
  await page.goto('/');await page.locator('#addBtn').click();await page.locator('#siteTitle').fill('测试收藏');await page.locator('#siteUrl').fill('example.com:8080/path');await page.locator('#siteCategory').fill('测试分类');await page.locator('#modalSave').click();await expect(page.locator('#modal')).not.toHaveClass(/show/);
