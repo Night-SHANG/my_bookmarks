@@ -783,7 +783,7 @@ function importBookmarks(data, restoring = false) {
     const next = data.map(b => { let id = typeof b.id === 'string' && b.id ? b.id : genId(); while (ids.has(id)) id = genId(); ids.add(id); return {...b, id}; });
     let previousBackup;
     try {
-        const old = localStorage.getItem(STORAGE_KEY);
+        const old = localStorage.getItem(STORAGE_KEY) ?? JSON.stringify(bookmarks);
         previousBackup = localStorage.getItem('my_nav_backup');
         // Keep the old recovery point independently before replacing its key.
         if (previousBackup !== null) localStorage.setItem('my_nav_backup_previous', previousBackup);
