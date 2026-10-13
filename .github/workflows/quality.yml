@@ -1,0 +1,24 @@
+name: Navigation quality gates
+on:
+  push:
+    branches: ['feat/bookmarks-visual-redesign']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bookmarks-preview
+          path: dist/
+          if-no-files-found: error

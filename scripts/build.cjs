@@ -1,0 +1,2 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+fs.mkdirSync('dist',{recursive:true});const manifest=[];for(const name of ['index.html','style.css','app.js','favicon.ico']){const bytes=fs.readFileSync(name);fs.writeFileSync(path.join('dist',name),bytes);manifest.push({file:name,bytes:bytes.length,sha256:crypto.createHash('sha256').update(bytes).digest('hex')})}fs.writeFileSync('dist/manifest.json',JSON.stringify(manifest,null,2));console.log('Static package verified:',manifest.length,'files');

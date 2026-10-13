@@ -17,6 +17,9 @@ const DEFAULT_BOOKMARKS = [
 ];
 
 // ========== 状态 ==========
+let storageDamaged = false;
+let demoMode = false;
+let demoOriginal = null;
 let bookmarks = load();
 let currentCategory = '全部';
 let currentEngine = 'baidu';
@@ -40,6 +43,7 @@ const siteIcon = document.getElementById('siteIcon');
 
 let modalMode = 'add';
 let editingId = null;
+let modalReturnFocus = null;
 
 // ========== 工具函数 ==========
 
@@ -47,31 +51,45 @@ function genId() {
     return 'b_' + Math.random().toString(36).slice(2, 9);
 }
 
-function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookmarks));
+function save(next = bookmarks) {
+    if (storageDamaged) { showToast('原数据无法读取，请先导出原始数据后再导入修复文件', 'error'); return false; }
+    if (demoMode) { bookmarks = next; return true; }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); bookmarks = next; return true; }
+    catch (e) { showToast('保存失败：浏览器存储不可用或空间不足，原收藏未改变', 'error'); return false; }
 }
-
+function readSetting(key, fallback) {
+    try { return localStorage.getItem(key) ?? fallback; } catch (e) { return fallback; }
+}
+function writeSetting(key, value) {
+    try { localStorage.setItem(key, value); return true; }
+    catch (e) { showToast('设置无法保存，请检查浏览器存储权限', 'error'); return false; }
+}
+function isSafeUrl(value) {
+    try { return ['http:', 'https:'].includes(new URL(value).protocol); } catch (e) { return false; }
+}
+function validBookmarks(data) {
+    return Array.isArray(data) && data.every(b => b && typeof b === 'object' && typeof b.title === 'string' && b.title.trim() && typeof b.url === 'string' && isSafeUrl(b.url) && ['desc','category','icon'].every(k => b[k] === undefined || typeof b[k] === 'string'));
+}
 function load() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return DEFAULT_BOOKMARKS.slice();
-        return JSON.parse(raw);
-    } catch (e) {
-        console.error('数据加载错误:', e);
-        return DEFAULT_BOOKMARKS.slice();
-    }
+        if (raw === null) return DEFAULT_BOOKMARKS.slice();
+        const parsed = JSON.parse(raw);
+        if (!validBookmarks(parsed)) throw new Error('invalid data');
+        return parsed.map(b => ({...b, id: b.id || genId()}));
+    } catch (e) { storageDamaged = true; return []; }
 }
 
 // ========== 列数控制（最少3列，最多10列） ==========
 
 function getColumns() {
-    const saved = localStorage.getItem(COLUMNS_KEY);
-    return saved ? parseInt(saved, 10) : 4;
+    const saved = parseInt(readSetting(COLUMNS_KEY, '3'), 10);
+    return Number.isFinite(saved) ? Math.max(3, Math.min(10, saved)) : 3;
 }
 
 function setColumns(n) {
     n = Math.max(3, Math.min(10, n));
-    localStorage.setItem(COLUMNS_KEY, n);
+    writeSetting(COLUMNS_KEY, n);
     colsDisplay.textContent = n + '列';
     applyEffectiveColumns();
 }
@@ -80,8 +98,8 @@ function setColumns(n) {
 function applyEffectiveColumns() {
     const userCols = getColumns();
     const gridWidth = bookmarksGrid.clientWidth || window.innerWidth - 56;
-    const minCardWidth = 180;
-    const gap = 10;
+    const minCardWidth = window.innerWidth <= 700 ? 165 : 265;
+    const gap = 17;
     const maxFit = Math.floor((gridWidth + gap) / (minCardWidth + gap));
     const actual = Math.min(userCols, Math.max(1, maxFit));
     document.documentElement.style.setProperty('--columns', actual);
@@ -94,19 +112,20 @@ document.getElementById('colsDecrease').addEventListener('click', () => setColum
 
 // ========== 主题色自定义 ==========
 
-const DEFAULT_ACCENT = '#c9553d';
+const DEFAULT_ACCENT = '#367454';
 
 function initAccent() {
-    const saved = localStorage.getItem(ACCENT_KEY);
+    const saved = readSetting(ACCENT_KEY, '');
     if (saved) applyAccent(saved);
     else updateColorDots(DEFAULT_ACCENT);
 }
 
 function applyAccent(color) {
+    if (!/^#[0-9a-f]{6}$/i.test(color)) return;
     document.documentElement.style.setProperty('--accent', color);
     document.documentElement.style.setProperty('--accent-hover', adjustBrightness(color, -20));
     document.documentElement.style.setProperty('--accent-dim', hexToRgba(color, 0.08));
-    localStorage.setItem(ACCENT_KEY, color);
+    writeSetting(ACCENT_KEY, color);
     updateColorDots(color);
 
     // 更新自定义颜色输入
@@ -230,8 +249,10 @@ function faviconUrlsFor(url) {
 
 function getCategories() {
     const set = new Set(bookmarks.map(b => b.category || '未分类'));
+    set.delete('全部');
     const defaultCategories = ['全部', ...Array.from(set).sort()];
-    const storedOrder = JSON.parse(localStorage.getItem(CATEGORY_ORDER_KEY) || '[]');
+    let storedOrder = [];
+    try { const value = JSON.parse(readSetting(CATEGORY_ORDER_KEY, '[]')); if (Array.isArray(value)) storedOrder = [...new Set(value)]; } catch (e) {}
     if (storedOrder.length === 0) return defaultCategories;
 
     const currentSet = new Set(defaultCategories);
@@ -249,7 +270,14 @@ function renderCategories() {
     cats.forEach(cat => {
         const chip = document.createElement('button');
         chip.className = 'cat-chip' + (cat === currentCategory ? ' active' : '');
-        chip.textContent = cat;
+        chip.dataset.category = cat;
+        const categoryIcon = document.createElement('i');
+        categoryIcon.className = 'fas fa-' + (cat === '全部' ? 'th-large' : /开发/.test(cat) ? 'code' : /设计/.test(cat) ? 'palette' : /阅读/.test(cat) ? 'book-open' : /影音/.test(cat) ? 'play-circle' : 'folder');
+        categoryIcon.setAttribute('aria-hidden', 'true');
+        const label = document.createElement('span'); label.className = 'cat-name'; label.textContent = cat === '全部' ? '全部书签' : cat;
+        const count = document.createElement('span'); count.className = 'cat-count'; count.textContent = cat === '全部' ? bookmarks.length : bookmarks.filter(b => (b.category || '未分类') === cat).length;
+        chip.append(categoryIcon, label, count);
+        chip.setAttribute('aria-pressed', cat === currentCategory);
         chip.draggable = true;
 
         chip.addEventListener('click', () => { currentCategory = cat; renderAll(); });
@@ -282,6 +310,8 @@ function renderBookmarks() {
         return true;
     });
 
+    document.getElementById('collectionTitle').textContent = currentCategory === '全部' ? '全部书签' : currentCategory;
+    document.getElementById('bookmarkCount').textContent = `${list.length} 个站点${searchQuery ? ' · 搜索结果' : ''}${demoMode ? ' · 演示数据（不会写入收藏）' : ''}`;
     if (bookmarks.length === 0) {
         emptyState.style.display = 'flex';
         bookmarksGrid.style.display = 'none';
@@ -304,6 +334,9 @@ function renderBookmarks() {
         const card = document.createElement('a');
         card.href = b.url;
         card.target = '_blank';
+        card.rel = 'noopener noreferrer';
+        card.dataset.id = b.id;
+        card.title = b.title + ' — ' + b.url;
         card.className = 'bookmark-card';
         card.draggable = true;
 
@@ -353,20 +386,21 @@ function renderBookmarks() {
         desc.textContent = b.desc || ('分类：' + (b.category || '未分类'));
 
         meta.appendChild(title);
-        meta.appendChild(url);
         meta.appendChild(desc);
+        meta.appendChild(url);
 
         // 操作按钮
         const actions = document.createElement('div');
         actions.className = 'card-actions';
 
         const editBtn = document.createElement('button');
-        editBtn.className = 'action-btn';
+        editBtn.className = 'action-btn edit-btn';
         editBtn.title = '编辑';
         editBtn.innerHTML = '<i class="fas fa-edit"></i>';
         editBtn.addEventListener('click', (e) => {
             e.preventDefault(); e.stopPropagation();
             openModal('edit', b);
+            modalReturnFocus = actions.querySelector('[aria-expanded]');
         });
 
         const delBtn = document.createElement('button');
@@ -376,13 +410,15 @@ function renderBookmarks() {
         delBtn.addEventListener('click', (e) => {
             e.preventDefault(); e.stopPropagation();
             if (confirm('确认删除【' + b.title + '】？')) {
-                bookmarks = bookmarks.filter(x => x.id !== b.id);
-                save();
+                if (!save(bookmarks.filter(x => x.id !== b.id))) return;
                 renderAll();
                 showToast('已删除 ' + b.title, 'success');
             }
         });
 
+        const moreBtn = document.createElement('button'); moreBtn.className = 'action-btn'; moreBtn.title = '管理 ' + b.title; moreBtn.setAttribute('aria-label', moreBtn.title); moreBtn.setAttribute('aria-expanded', 'false'); moreBtn.innerHTML = '<i class="fas fa-ellipsis-h" aria-hidden="true"></i>';
+        moreBtn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); const open = !actions.classList.contains('open'); document.querySelectorAll('.card-actions.open').forEach(x => x.classList.remove('open')); actions.classList.toggle('open', open); moreBtn.setAttribute('aria-expanded', open); });
+        actions.appendChild(moreBtn);
         actions.appendChild(editBtn);
         actions.appendChild(delBtn);
 
@@ -427,9 +463,9 @@ function performSearch() {
 
 function openSearchOrUrl(q) {
     if (/^https?:\/\//i.test(q) || (/^([\w-]+\.)+[\w-]+(\/.*)?$/.test(q) && q.includes('.'))) {
-        window.open(/^https?:\/\//i.test(q) ? q : 'https://' + q, '_blank');
+        window.open(/^https?:\/\//i.test(q) ? q : 'https://' + q, '_blank', 'noopener,noreferrer');
     } else {
-        window.open((engines[currentEngine] || engines.baidu)(q), '_blank');
+        window.open((engines[currentEngine] || engines.baidu)(q), '_blank', 'noopener,noreferrer');
     }
 }
 
@@ -442,7 +478,8 @@ document.querySelectorAll('.engine-tab').forEach(btn => {
         document.querySelectorAll('.engine-tab').forEach(x => x.classList.remove('active'));
         btn.classList.add('active');
         currentEngine = btn.dataset.engine;
-        searchInput.focus();
+        if (searchInput.value.trim()) performSearch();
+        else searchInput.focus();
     });
 });
 
@@ -461,19 +498,22 @@ document.getElementById('modalSave').addEventListener('click', () => {
 
     if (!title || !url) { showToast('请填写标题和链接', 'error'); return; }
 
+    if (/^[a-z][a-z0-9+.-]*:/i.test(url) && !/^https?:/i.test(url) && !/^[a-z0-9.-]+:\d+(?:[/?#]|$)/i.test(url)) { showToast('仅支持 http / https 网站链接', 'error'); return; }
     let finalUrl = url;
     if (!/^https?:\/\//i.test(url)) finalUrl = 'https://' + url;
-    try { new URL(finalUrl); } catch (e) { showToast('链接格式不正确', 'error'); return; }
+    if (!isSafeUrl(finalUrl)) { showToast('链接格式不正确', 'error'); return; }
+    if (icon && !isSafeUrl(icon)) { showToast('图标请使用 http / https 地址，或留空自动获取', 'error'); return; }
 
-    saveEntry({
+    if (!saveEntry({
         id: modalMode === 'edit' ? editingId : genId(),
         title, url: finalUrl, desc, category: cat, icon
-    });
+    })) return;
     closeModal();
     showToast(modalMode === 'edit' ? '已更新 ' + title : '已添加 ' + title, 'success');
 });
 
 function openModal(mode, entry) {
+    modalReturnFocus = document.activeElement;
     modalMode = mode;
     modal.classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -483,7 +523,7 @@ function openModal(mode, entry) {
         siteTitle.value = ''; siteUrl.value = ''; siteDesc.value = '';
         siteCategory.value = ''; siteIcon.value = '';
         editingId = null;
-        setTimeout(() => siteTitle.focus(), 100);
+
     } else {
         modalTitle.textContent = '编辑站点';
         siteTitle.value = entry.title || '';
@@ -493,19 +533,19 @@ function openModal(mode, entry) {
         siteIcon.value = entry.icon || '';
         editingId = entry.id;
     }
+    siteTitle.focus();
 }
 
 function closeModal() {
     modal.classList.remove('show');
     document.body.style.overflow = '';
+    (modalReturnFocus?.isConnected ? modalReturnFocus : document.getElementById('addBtn')).focus();
 }
 
 function saveEntry(obj) {
-    const exists = bookmarks.find(b => b.id === obj.id);
-    if (exists) Object.assign(exists, obj);
-    else bookmarks.push(obj);
-    save();
-    renderAll();
+    const next = bookmarks.some(b => b.id === obj.id) ? bookmarks.map(b => b.id === obj.id ? {...b, ...obj} : b) : [...bookmarks, obj];
+    if (!save(next)) return false;
+    renderAll(); return true;
 }
 
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
@@ -545,14 +585,15 @@ function handleDrop(e) {
     this.classList.remove('drag-over');
 
     if (this !== draggedElement && draggedElement) {
-        const draggedBookmark = bookmarks.find(b => b.url === draggedElement.href);
-        const targetBookmark = bookmarks.find(b => b.url === this.href);
+        const draggedBookmark = bookmarks.find(b => String(b.id) === draggedElement.dataset.id);
+        const targetBookmark = bookmarks.find(b => String(b.id) === this.dataset.id);
 
         if (draggedBookmark && targetBookmark) {
             const draggedPos = bookmarks.findIndex(b => b.id === draggedBookmark.id);
             const targetPos = bookmarks.findIndex(b => b.id === targetBookmark.id);
-            [bookmarks[draggedPos], bookmarks[targetPos]] = [bookmarks[targetPos], bookmarks[draggedPos]];
-            save();
+            const next = bookmarks.slice();
+            [next[draggedPos], next[targetPos]] = [next[targetPos], next[draggedPos]];
+            if (!save(next)) return;
 
             // DOM 直接交换，不重新渲染
             const parent = bookmarksGrid;
@@ -579,7 +620,7 @@ function handleCategoryDragStart(e) {
     draggedCategory = this;
     this.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', this.textContent);
+    e.dataTransfer.setData('text/plain', this.dataset.category);
 }
 
 function handleCategoryDragEnd() {
@@ -607,8 +648,8 @@ function handleCategoryDrop(e) {
 
     if (this !== draggedCategory && draggedCategory) {
         const categories = getCategories();
-        const draggedName = draggedCategory.textContent;
-        const targetName = this.textContent;
+        const draggedName = draggedCategory.dataset.category;
+        const targetName = this.dataset.category;
         const draggedIndex = categories.indexOf(draggedName);
         const targetIndex = categories.indexOf(targetName);
 
@@ -616,7 +657,7 @@ function handleCategoryDrop(e) {
             const newCats = [...categories];
             const [moved] = newCats.splice(draggedIndex, 1);
             newCats.splice(targetIndex, 0, moved);
-            localStorage.setItem(CATEGORY_ORDER_KEY, JSON.stringify(newCats));
+            if (!demoMode && !writeSetting(CATEGORY_ORDER_KEY, JSON.stringify(newCats))) return;
 
             // DOM 直接交换
             if (draggedIndex < targetIndex) {
@@ -631,7 +672,7 @@ function handleCategoryDrop(e) {
 // ========== 导入/导出 ==========
 
 document.getElementById('exportBtn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(bookmarks, null, 2)], { type: 'application/json' });
+    const blob = new Blob([storageDamaged ? readSetting(STORAGE_KEY, '[]') : JSON.stringify(bookmarks, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = 'bookmarks.json'; a.click();
@@ -649,14 +690,7 @@ importFile.addEventListener('change', (e) => {
     reader.onload = () => {
         try {
             const data = JSON.parse(reader.result);
-            if (Array.isArray(data)) {
-                bookmarks = data;
-                save();
-                renderAll();
-                showToast(`导入成功，共 ${data.length} 个书签`, 'success');
-            } else {
-                showToast('格式错误：需为书签数组', 'error');
-            }
+            importBookmarks(data);
         } catch (err) { showToast('JSON 解析错误', 'error'); }
     };
     reader.readAsText(f);
@@ -666,14 +700,14 @@ importFile.addEventListener('change', (e) => {
 // ========== 深色模式 ==========
 
 function initTheme() {
-    const saved = localStorage.getItem(THEME_KEY);
+    const saved = readSetting(THEME_KEY, 'light');
     applyTheme(saved || 'light');
 }
 
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-    localStorage.setItem(THEME_KEY, theme);
+    writeSetting(THEME_KEY, theme);
 }
 
 document.getElementById('themeToggle').addEventListener('click', () => {
@@ -687,7 +721,8 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
-    toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${message}</span>`;
+    const icon = document.createElement('i'); icon.className = 'fas ' + (icons[type] || icons.info);
+    const text = document.createElement('span'); text.textContent = message; toast.append(icon, text);
     toastContainer.appendChild(toast);
     setTimeout(() => {
         toast.classList.add('toast-out');
@@ -731,14 +766,75 @@ initTheme();
 initAccent();
 setColumns(getColumns());
 
-if (!localStorage.getItem(CATEGORY_ORDER_KEY)) {
-    localStorage.setItem(CATEGORY_ORDER_KEY, JSON.stringify(getCategories()));
-}
-
 renderAll();
 
 // 自动聚焦搜索框
-searchInput.focus();
+// Do not force focus on page load (avoids the mobile keyboard).
 
-window.myNav = { bookmarks, save, load, getCategories };
+window.myNav = { get bookmarks() { return bookmarks; }, save, load, getCategories, importBookmarks };
 console.log('网址导航已加载 ✓');
+
+
+function importBookmarks(data, restoring = false) {
+    if (!validBookmarks(data)) { showToast('导入失败：请使用包含有效标题和 http / https 链接的书签数组', 'error'); return false; }
+    if (demoMode) { showToast('请先退出演示，再导入自己的收藏', 'info'); return false; }
+    if (!confirm(restoring ? '恢复上次备份？当前收藏将先保存为新的备份。' : `导入 ${data.length} 个站点并替换当前收藏？替换前将自动保留一份备份。`)) return false;
+    const ids = new Set();
+    const next = data.map(b => { let id = typeof b.id === 'string' && b.id ? b.id : genId(); while (ids.has(id)) id = genId(); ids.add(id); return {...b, id}; });
+    let previousBackup;
+    try {
+        const old = localStorage.getItem(STORAGE_KEY);
+        previousBackup = localStorage.getItem('my_nav_backup');
+        // Keep the old recovery point independently before replacing its key.
+        if (previousBackup !== null) localStorage.setItem('my_nav_backup_previous', previousBackup);
+        if (old !== null) localStorage.setItem('my_nav_backup', old);
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
+        catch (error) {
+            if (previousBackup !== null) localStorage.setItem('my_nav_backup', previousBackup);
+            else localStorage.removeItem('my_nav_backup');
+            throw error;
+        }
+    } catch (e) { showToast('导入未完成：无法保存备份或新数据，当前收藏未改变；较早备份仍保留', 'error'); return false; }
+    bookmarks = next; storageDamaged = false; currentCategory = '全部';
+    document.getElementById('storageWarning').hidden = true;
+    renderAll(); showToast(`导入成功，共 ${next.length} 个书签`, 'success'); return true;
+}
+function applyView(view) {
+    view = view === 'list' ? 'list' : 'grid';
+    bookmarksGrid.classList.toggle('list-view', view === 'list');
+    ['grid','list'].forEach(name => { const button = document.getElementById(name + 'ViewBtn'); button.classList.toggle('active', name === view); button.setAttribute('aria-pressed', name === view); });
+    writeSetting('nav_view', view);
+}
+applyView(readSetting('nav_view', 'grid'));
+document.getElementById('gridViewBtn').addEventListener('click', () => applyView('grid'));
+document.getElementById('listViewBtn').addEventListener('click', () => applyView('list'));
+for (const [buttonId, panelId] of [['dataPanelBtn','dataPanel'],['appearanceBtn','appearancePanel']]) {
+    const button = document.getElementById(buttonId), panel = document.getElementById(panelId);
+    button.addEventListener('click', () => { panel.hidden = !panel.hidden; button.setAttribute('aria-expanded', !panel.hidden); });
+}
+document.getElementById('restoreBtn').addEventListener('click', () => {
+    try { const raw = readSetting('my_nav_backup', ''); if (!raw) { showToast('还没有可恢复的备份', 'info'); return; } importBookmarks(JSON.parse(raw), true); }
+    catch (e) { showToast('备份无法读取，请导入有效的 JSON 文件', 'error'); }
+});
+if (storageDamaged) { const warning = document.getElementById('storageWarning'); warning.hidden = false; warning.textContent = '原收藏数据无法读取或已经损坏。原始数据未被覆盖，请先从「导入 / 导出」导出原文件，再导入修复后的 JSON。'; }
+const DEMO_BOOKMARKS = [
+ ['百度','www.baidu.com','中文搜索引擎','阅读学习'],['ChatGPT','chatgpt.com','思考、创作与探索','AI 工具'],['通义千问','qwen.ai','你的 AI 助手','AI 工具'],
+ ['GitHub','github.com','代码与开源项目','开发工具'],['MDN','developer.mozilla.org','Web 开发文档','开发工具'],['Vercel','vercel.com','让想法上线','开发工具'],
+ ['Figma','figma.com','设计与协作','设计灵感'],['Dribbble','dribbble.com','界面与视觉灵感','设计灵感'],['Pinterest','pinterest.com','发现与收集灵感','设计灵感'],
+ ['Notion','notion.so','知识与笔记','阅读学习'],['哔哩哔哩','www.bilibili.com','视频与创作','影音娱乐'],['知乎','www.zhihu.com','问答与知识','阅读学习']
+].map(([title, domain, desc, category], i) => ({id:'demo-'+i,title,url:'https://'+domain+'/',desc,category,icon:'https://icons.duckduckgo.com/ip3/'+domain+'.ico'}));
+document.getElementById('demoBtn').addEventListener('click', () => {
+    if (!demoMode) { demoOriginal = bookmarks; bookmarks = DEMO_BOOKMARKS.map(b => ({...b})); demoMode = true; }
+    else { bookmarks = demoOriginal; demoOriginal = null; demoMode = false; }
+    currentCategory = '全部'; searchInput.value = ''; searchQuery = '';
+    document.getElementById('demoBtn').textContent = demoMode ? '退出演示，回到我的收藏' : '体验演示数据';
+    renderAll();
+});
+document.addEventListener('click', () => document.querySelectorAll('.card-actions.open').forEach(x => { x.classList.remove('open'); x.querySelector('[aria-expanded]')?.setAttribute('aria-expanded','false'); }));
+modal.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const items = [...modal.querySelectorAll('button,input')].filter(x => !x.disabled);
+    const first = items[0], last = items[items.length-1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});

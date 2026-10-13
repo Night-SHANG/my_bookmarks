@@ -1,0 +1,26 @@
+{
+  "name": "my-bookmarks",
+  "version": "1.0.0-preview",
+  "description": "我的导航主页",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "preflight": "node scripts/preflight.cjs",
+    "build": "npm run preflight && node scripts/build.cjs",
+    "dev": "node scripts/serve.cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Night-SHANG/my_bookmarks.git"
+  },
+  "keywords": [],
+  "author": "",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Night-SHANG/my_bookmarks/issues"
+  },
+  "homepage": "https://github.com/Night-SHANG/my_bookmarks#readme",
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  },
+  "private": true
+}

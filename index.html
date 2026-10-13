@@ -11,29 +11,16 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app">
-        <!-- 头部 -->
-        <header class="header">
-            <div class="header-brand">
-                <h1 class="brand-title">
-                    <span class="brand-icon"><i class="fas fa-compass"></i></span>
-                    网址导航
-                </h1>
-            </div>
-            <div class="header-actions">
-                <button class="btn btn-primary" id="addBtn">
-                    <i class="fas fa-plus"></i>
-                    <span>添加</span>
-                </button>
-                <button class="btn btn-ghost" id="exportBtn">
-                    <i class="fas fa-download"></i>
-                    <span>导出</span>
-                </button>
-                <button class="btn btn-ghost" id="importBtn">
-                    <i class="fas fa-upload"></i>
-                    <span>导入</span>
-                </button>
-                <div class="grid-control">
+<a class="skip-link" href="#searchInput">跳到搜索</a>
+<div class="app">
+ <aside class="sidebar" aria-label="导航与管理">
+  <div class="brand"><i class="fas fa-bookmark" aria-hidden="true"></i><div><h1>我的导航</h1><p>个人收藏夹</p></div></div>
+  <nav class="category-bar" id="categoryBar" aria-label="书签分类"></nav>
+  <div class="sidebar-footer">
+   <button class="sidebar-action" id="dataPanelBtn" aria-expanded="false"><i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i>导入 / 导出</button>
+   <div class="utility-panel" id="dataPanel" hidden><button class="btn btn-ghost" id="importBtn">导入 JSON</button><button class="btn btn-ghost" id="exportBtn">导出 JSON</button><button class="btn btn-ghost" id="restoreBtn">恢复上次备份</button><p>导入会替换收藏，并保留一份本地备份。</p></div>
+   <button class="sidebar-action" id="appearanceBtn" aria-expanded="false"><i class="fas fa-gear" aria-hidden="true"></i>外观设置</button>
+   <div class="utility-panel appearance-panel" id="appearancePanel" hidden>                <div class="grid-control">
                     <button class="btn btn-icon" id="colsDecrease" title="减少列数">
                         <i class="fas fa-minus"></i>
                     </button>
@@ -47,7 +34,7 @@
                         <i class="fas fa-palette"></i>
                     </button>
                     <div class="color-picker-panel" id="colorPanel">
-                        <div class="color-presets">
+                        <div class="color-presets"><button class="color-dot" data-color="#367454" style="background:#367454" title="森林绿"></button>
                             <button class="color-dot" data-color="#c9553d" style="background:#c9553d" title="赤陶橙"></button>
                             <button class="color-dot" data-color="#4f46e5" style="background:#4f46e5" title="靛蓝"></button>
                             <button class="color-dot" data-color="#059669" style="background:#059669" title="翡翠绿"></button>
@@ -58,7 +45,7 @@
                             <button class="color-dot" data-color="#475569" style="background:#475569" title="石板灰"></button>
                         </div>
                         <div class="color-custom">
-                            <input type="color" id="customColor" value="#c9553d" title="选择自定义颜色">
+                            <input type="color" id="customColor" value="#367454" title="选择自定义颜色">
                             <span>自定义颜色</span>
                         </div>
                     </div>
@@ -66,45 +53,26 @@
                 <button class="btn btn-icon" id="themeToggle" title="切换深色模式">
                     <i class="fas fa-moon" id="themeIcon"></i>
                 </button>
-            </div>
-        </header>
-
-        <!-- 搜索区域 -->
-        <section class="search-section">
-            <div class="engine-tabs" id="engineSelector">
-                <button class="engine-tab active" data-engine="baidu">百度</button>
-                <button class="engine-tab" data-engine="google">Google</button>
-                <button class="engine-tab" data-engine="bing">必应</button>
-            </div>
-            <div class="search-wrapper">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" id="searchInput" class="search-input"
-                       placeholder="搜索书签或输入网址…"
-                       autocomplete="off">
-                <kbd class="search-kbd">/</kbd>
-            </div>
-        </section>
-
-        <!-- 分类导航 -->
-        <nav class="category-bar" id="categoryBar">
-            <!-- 动态生成 -->
-        </nav>
-
-        <!-- 书签网格 -->
-        <main class="bookmarks-grid" id="bookmarksGrid">
-            <!-- 动态生成 -->
-        </main>
-
-        <!-- 空状态 -->
-        <div class="empty-state" id="emptyState" style="display: none;">
-            <i class="fas fa-bookmark"></i>
-            <h3>还没有书签</h3>
-            <p>点击上方「添加」按钮开始收藏你的网站</p>
-        </div>
-    </div>
-
+</div>
+  </div>
+ </aside>
+ <div class="workspace">
+  <header class="header"><div><h2>收藏，让灵感随手可达。</h2><p>常用网站，有序收藏。</p></div><button class="btn btn-primary" id="addBtn"><i class="fas fa-plus" aria-hidden="true"></i><span>添加站点</span></button></header>
+  <div id="storageWarning" class="storage-warning" role="alert" hidden></div>
+  <section class="search-section" aria-label="查找网站">
+   <div class="search-wrapper"><i class="fas fa-search search-icon" aria-hidden="true"></i><input type="search" id="searchInput" class="search-input" placeholder="搜索书签、描述或网址…" aria-label="搜索书签、描述或网址" autocomplete="off"><kbd class="search-kbd">/</kbd></div>
+   <div class="engine-row"><span>联网搜索：</span><div class="engine-tabs" id="engineSelector"><button class="engine-tab active" data-engine="baidu">百度</button><button class="engine-tab" data-engine="google"><i class="fab fa-google" aria-hidden="true"></i>Google</button><button class="engine-tab" data-engine="bing">必应</button></div><span class="search-help">输入后按 Enter 联网搜索</span></div>
+  </section>
+  <section class="collection" aria-label="收藏网站">
+   <div class="collection-heading"><div><h2 id="collectionTitle">全部书签</h2><p id="bookmarkCount" aria-live="polite"></p></div><div class="view-switch" aria-label="显示方式"><button id="gridViewBtn" class="active" title="网格视图" aria-label="网格视图" aria-pressed="true"><i class="fas fa-th-large" aria-hidden="true"></i></button><button id="listViewBtn" title="列表视图" aria-label="列表视图" aria-pressed="false"><i class="fas fa-list" aria-hidden="true"></i></button></div></div>
+   <main class="bookmarks-grid" id="bookmarksGrid"></main>
+   <div class="empty-state" id="emptyState" style="display:none"><i class="far fa-bookmark" aria-hidden="true"></i><h3>收藏你的第一个网站</h3><p>点击「添加站点」，把常用网站放在这里。</p></div>
+  </section>
+  <footer class="workspace-footer"><span><i class="fas fa-grip-vertical" aria-hidden="true"></i>拖动调整顺序</span><span>数据保存在此浏览器</span><button id="demoBtn">体验演示数据</button><span class="version">v1.0.0-preview</span></footer>
+ </div>
+</div>
     <!-- 模态框：添加/编辑 -->
-    <div class="modal-overlay" id="modal">
+    <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modalTitle">添加站点</h2>
@@ -148,7 +116,7 @@
     </div>
 
     <!-- Toast 通知容器 -->
-    <div class="toast-container" id="toastContainer"></div>
+    <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
     <!-- 隐藏的文件输入 -->
     <input type="file" id="importFile" accept="application/json" style="display: none;">
