@@ -2,12 +2,12 @@ const {test,expect}=require('@playwright/test');
 const fs=require('node:fs');
 const entry=(i)=>({id:'fixture-'+i,title:'站点 '+i,url:'https://example.org/'+i,desc:'本地测试收藏',category:'分类 '+i,icon:''});
 async function ready(page){await page.evaluate(()=>document.fonts.ready);await expect(page.locator('.bookmark-card')).not.toHaveCount(0);}
-async function capture(page,name){fs.mkdirSync('artifacts',{recursive:true});await page.screenshot({path:'artifacts/'+name+'.png',fullPage:true,animations:'disabled'});}
+async function capture(page,name){if((await page.locator('#demoBtn').textContent()).includes('退出演示'))await expect(page.locator('.favicon .fa-spinner')).toHaveCount(0,{timeout:30000});fs.mkdirSync('artifacts',{recursive:true});await page.screenshot({path:'artifacts/'+name+'.png',fullPage:true,animations:'disabled'});}
 test('desktop approved design, filters, list and no runtime exceptions',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await page.getByRole('button',{name:'体验演示数据',exact:true}).click();await ready(page);
  await expect(page.locator('.bookmark-card')).toHaveCount(12);
- await page.waitForFunction(()=>[...document.querySelectorAll('.favicon img')].every(x=>x.complete),{},{timeout:15000}).catch(()=>{});
+
  await capture(page,'desktop-grid');
  await page.locator('.cat-chip').filter({hasText:'AI 工具'}).click();await expect(page.locator('.bookmark-card')).toHaveCount(2);
  await page.locator('.cat-chip').filter({hasText:'全部书签'}).click();await page.getByRole('searchbox').fill('GitHub');await expect(page.locator('.bookmark-card')).toHaveCount(1);

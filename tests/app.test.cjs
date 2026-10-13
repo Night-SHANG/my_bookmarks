@@ -2,13 +2,14 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const {JSDOM}=require('jsdom');
-function app(bookmarks, extras={}) {
+function app(bookmarks, extras={}, options={}) {
  const dom=new JSDOM(fs.readFileSync('index.html','utf8'),{url:'https://example.test/',runScripts:'outside-only',pretendToBeVisual:true});
- const w=dom.window; w.confirm=()=>true; w.open=()=>{};
+ const w=dom.window; const iconTimeouts=[]; if(options.captureIconTimeout){const original=w.setTimeout.bind(w);w.setTimeout=(fn,ms,...args)=>ms===8000?(iconTimeouts.push(fn),0):original(fn,ms,...args);}
+ w.confirm=()=>true; w.open=()=>{};
  if(bookmarks!==undefined) w.localStorage.setItem('my_nav_v2',typeof bookmarks==='string'?bookmarks:JSON.stringify(bookmarks));
  for(const [k,v] of Object.entries(extras)) w.localStorage.setItem(k,v);
  w.eval(fs.readFileSync('app.js','utf8'));
- return {w,d:w.document,close:()=>dom.window.close()};
+ return {w,d:w.document,iconTimeouts,close:()=>dom.window.close()};
 }
 const entry=(id,title='测试',category='开发')=>({id,title,url:'https://example.org/'+id,category,desc:'描述',icon:''});
 test('default categories have exactly one 全部',()=>{const a=app();assert.equal([...a.d.querySelectorAll('.cat-chip')].filter(x=>x.dataset.category==='全部'||x.textContent==='全部').length,1);a.close();});
@@ -34,3 +35,5 @@ test('numeric legacy ids can be reordered by drag',()=>{const a=app([entry(1),en
 test('edit cancellation returns focus to persistent More control',()=>{const a=app([entry('one')]);const more=a.d.querySelector('.card-actions [aria-expanded]');more.click();a.d.querySelector('.edit-btn').click();a.d.querySelector('#modalCancelBtn').click();assert.equal(a.d.activeElement,more);a.close();});
 test('bare hostname and localhost ports remain supported',()=>{for(const url of ['example.com:8080/path','localhost:3000']){const a=app([]);a.d.querySelector('#addBtn').click();a.d.querySelector('#siteTitle').value='端口站点';a.d.querySelector('#siteUrl').value=url;a.d.querySelector('#modalSave').click();assert.equal(JSON.parse(a.w.localStorage.getItem('my_nav_v2'))[0].url,'https://'+url);a.close();}});
 test('first import backs up visible defaults even before first save',()=>{const a=app();const initial=JSON.parse(JSON.stringify(a.w.myNav.bookmarks));a.w.myNav.importBookmarks([entry('new')]);assert.deepEqual(JSON.parse(a.w.localStorage.getItem('my_nav_backup')),initial);a.close();});
+
+test('stalled external favicon stops spinning and shows a safe fallback',()=>{const a=app([entry('one')],{},{captureIconTimeout:true});assert.equal(a.iconTimeouts.length,1);a.iconTimeouts[0]();assert.equal(a.d.querySelectorAll('.favicon .fa-spinner').length,0);assert.ok(a.d.querySelector('.favicon .fa-globe'));a.close();});

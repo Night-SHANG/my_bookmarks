@@ -350,8 +350,12 @@ function renderBookmarks() {
         const candidates = (b.icon && b.icon.trim()) ? [b.icon.trim()] : faviconUrlsFor(b.url);
         img.src = candidates[0];
         let idx = 0;
+        const iconTimeout = setTimeout(() => {
+            if (fav.querySelector('.fa-spinner')) fav.innerHTML = '<i class="fas fa-globe" aria-label="网站图标暂不可用"></i>';
+        }, 8000);
 
         img.onload = function () {
+            clearTimeout(iconTimeout);
             fav.innerHTML = '';
             fav.appendChild(img);
             img.style.display = 'block';
@@ -366,7 +370,7 @@ function renderBookmarks() {
         img.onerror = function () {
             idx++;
             if (idx < candidates.length) img.src = candidates[idx];
-            else fav.innerHTML = '<i class="fas fa-globe"></i>';
+            else { clearTimeout(iconTimeout); fav.innerHTML = '<i class="fas fa-globe" aria-label="网站图标暂不可用"></i>'; }
         };
 
         // 信息区
