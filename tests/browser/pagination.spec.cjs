@@ -132,6 +132,7 @@ async function desktopFits(page) {
     expect(card.left).toBeGreaterThanOrEqual(-1);
     expect(card.right).toBeLessThanOrEqual(layout.viewport.width + 1);
   }
+  await expect(page.locator('#colsDisplay')).toHaveText(`${await page.locator(gridSelector).evaluate(grid=>getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length)}列`);
   expect((await paginationState(page)).pageSize, 'capacity must come from the actual rendered grid and card height').toBe(layout.measuredCapacity);
 }
 
@@ -298,7 +299,17 @@ test('resize and column preference changes clamp the current page without losing
   await expect.poll(async () => (await paginationState(page)).pageSize).toBeGreaterThan(previous.pageSize);
   let current = await assertPage(page, bookmarks, { desktop: true });
   expect(current.page).toBe(Math.min(previous.page, current.totalPages));
-  for (let columns = 4; columns <= 10; columns += 1) {
+  for (let columns = 4; columns <= 8; columns += 1) {
+    const before = await paginationState(page);
+    await page.locator('#colsIncrease').click();
+    await expect(page.locator('#colsDisplay')).toHaveText(`${columns}列`);
+    current = await assertPage(page, bookmarks, { desktop: true });
+    expect(current.pageSize).toBeGreaterThan(before.pageSize);
+  }
+  await expect(page.locator('#colsIncrease')).toBeDisabled();
+  await page.setViewportSize({ width: 2400, height: 1080 });
+  await ready(page);
+  for (let columns = 9; columns <= 10; columns += 1) {
     previous = current;
     await page.locator('#colsIncrease').click();
     await expect(page.locator('#colsDisplay')).toHaveText(`${columns}列`);
@@ -355,7 +366,9 @@ test('double-click file mode preserves add, edit, delete, custom accent, and sav
   expect(new URL(page.url()).protocol).toBe('file:');
   await ready(page);
   const settingsPersist = async () => {
-    await expect(page.locator('#colsDisplay')).toHaveText('6列');
+    await expect(page.locator('#colsDisplay')).toHaveText('5列');
+    await expect(page.locator('#colsDisplay')).toHaveAttribute('title', /偏好6列/);
+    await expect(page.locator('#colsIncrease')).toBeDisabled();
     expect(await page.evaluate(() => ({
       columns: localStorage.getItem('nav_columns'),
       accent: localStorage.getItem('nav_accent'),
@@ -405,6 +418,13 @@ test('double-click file mode preserves add, edit, delete, custom accent, and sav
   await settingsPersist();
   expect(await storedBookmarks(page)).toEqual(bookmarks);
   await visitEveryPage(page, bookmarks, { desktop: true });
+  await page.locator('#colsDecrease').click();
+  await expect(page.locator('#colsDisplay')).toHaveText('4列');
+  expect(await page.evaluate(() => localStorage.getItem('nav_columns'))).toBe('4');
+  await page.reload(); await ready(page);
+  await expect(page.locator('#colsDisplay')).toHaveText('4列');
+  await assertPage(page, bookmarks, { desktop: true });
+  await screenshot(page, 'pagination-file-columns-adjusted');
   expect(errors).toEqual([]);
 });
 

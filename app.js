@@ -93,8 +93,7 @@ function getColumns() {
 
 function setColumns(n) {
     n = Math.max(3, Math.min(10, n));
-    writeSetting(COLUMNS_KEY, n);
-    colsDisplay.textContent = n + '列';
+    if (!writeSetting(COLUMNS_KEY, n)) return;
     applyEffectiveColumns();
     if (initialized) renderBookmarks();
 }
@@ -104,15 +103,23 @@ function applyEffectiveColumns() {
     const gridWidth = bookmarksGrid.clientWidth || window.innerWidth - 56;
     const style = getComputedStyle(bookmarksGrid);
     const gap = parseFloat(style.columnGap) || 12;
-    const minCardWidth = window.innerWidth <= 700 ? 165 : 220;
+    const minCardWidth = window.innerWidth <= 700 ? 165 : 180;
     const maxFit = Math.floor((gridWidth + gap) / (minCardWidth + gap));
-    const actual = Math.min(getColumns(), Math.max(1, maxFit));
+    const preference = getColumns();
+    const listView = bookmarksGrid.classList.contains('list-view');
+    const actual = listView ? 1 : Math.min(preference, Math.max(1, maxFit));
     document.documentElement.style.setProperty('--columns', actual);
+    colsDisplay.textContent = actual + '列';
+    const explanation = listView ? `列表固定1列；网格偏好${preference}列` : actual < preference ? `窗口宽度限制为${actual}列；保存偏好${preference}列，放宽窗口后恢复` : `当前${actual}列`;
+    colsDisplay.title = explanation;
+    colsDisplay.setAttribute('aria-label', explanation);
+    document.getElementById('colsDecrease').disabled = listView || actual <= 3;
+    document.getElementById('colsIncrease').disabled = listView || actual >= Math.min(10, Math.max(1, maxFit));
     return actual;
 }
 
 function measurePageSize() {
-    const columns = bookmarksGrid.classList.contains('list-view') ? 1 : applyEffectiveColumns();
+    const columns = applyEffectiveColumns();
     const style = getComputedStyle(bookmarksGrid);
     const cardHeight = parseFloat(style.getPropertyValue('--card-height')) || (bookmarksGrid.classList.contains('list-view') ? 68 : 94);
     const gap = parseFloat(style.rowGap) || 12;
@@ -160,8 +167,8 @@ function refreshPageLayout() {
 }
 window.addEventListener('resize', refreshPageLayout);
 
-document.getElementById('colsIncrease').addEventListener('click', () => setColumns(getColumns() + 1));
-document.getElementById('colsDecrease').addEventListener('click', () => setColumns(getColumns() - 1));
+document.getElementById('colsIncrease').addEventListener('click', () => setColumns(applyEffectiveColumns() + 1));
+document.getElementById('colsDecrease').addEventListener('click', () => setColumns(applyEffectiveColumns() - 1));
 
 // ========== 主题色自定义 ==========
 
@@ -831,7 +838,7 @@ function isInputFocused() {
 
 initTheme();
 initAccent();
-setColumns(getColumns());
+applyEffectiveColumns();
 applyView(readSetting('nav_view', 'grid'));
 initialized = true;
 renderAll();
