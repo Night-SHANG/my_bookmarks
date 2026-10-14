@@ -361,8 +361,17 @@ test('double-click file mode preserves add, edit, delete, custom accent, and sav
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.setViewportSize({ width: 1366, height: 768 });
-  await seed(page, bookmarks, { nav_columns: '6', nav_accent: '#4f46e5' });
+  // Seed only after the file document commits, and never from a reload hook.
+  // Chromium can expose empty file storage to early addInitScript; a marker
+  // guard there can accidentally clear real writes and restore this fixture.
   await page.goto(fileEntry);
+  await page.evaluate(bookmarks => {
+    localStorage.clear();
+    localStorage.setItem('my_nav_v2', JSON.stringify(bookmarks));
+    localStorage.setItem('nav_columns', '6');
+    localStorage.setItem('nav_accent', '#4f46e5');
+  }, bookmarks);
+  await page.reload();
   expect(new URL(page.url()).protocol).toBe('file:');
   await ready(page);
   const settingsPersist = async () => {
@@ -387,10 +396,14 @@ test('double-click file mode preserves add, edit, delete, custom accent, and sav
   await page.locator('#siteDesc').fill('刷新后仍然保留');
   await page.locator('#modalSave').click();
   await expect(page.locator('#modal')).not.toHaveClass(/show/);
+  const beforeReload = await storedBookmarks(page);
+  expect(beforeReload).toHaveLength(bookmarks.length + 1);
+  expect(beforeReload.at(-1)).toMatchObject({ title: '本地文件新增收藏' });
   await page.reload();
   await ready(page);
   await settingsPersist();
   let saved = await storedBookmarks(page);
+  expect(saved).toEqual(beforeReload);
   const added = saved.find(bookmark => bookmark.title === '本地文件新增收藏');
   expect(added).toBeTruthy();
   expect(saved.filter(bookmark => bookmark.id !== added.id)).toEqual(bookmarks);

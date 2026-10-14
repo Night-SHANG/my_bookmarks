@@ -12,14 +12,23 @@ const fixtures = count => Array.from({ length: count }, (_, index) => ({
   icon: 'favicon.ico'
 }));
 
-async function seed(page, count, settings = {}) {
-  await page.addInitScript(({ bookmarks, settings }) => {
+async function seed(page, count, settings = {}, fileEntry) {
+  const initialize = ({ bookmarks, settings }) => {
     if (localStorage.getItem('__minimum_grid_seeded')) return;
     localStorage.clear();
     localStorage.setItem('my_nav_v2', JSON.stringify(bookmarks));
     for (const [key, value] of Object.entries(settings)) localStorage.setItem(key, value);
     localStorage.setItem('__minimum_grid_seeded', 'yes');
-  }, { bookmarks: fixtures(count), settings });
+  };
+  const data = { bookmarks: fixtures(count), settings };
+  if (fileEntry) {
+    // Seed a committed file document once; early reload hooks can observe
+    // empty file storage and would then overwrite user changes with fixtures.
+    await page.goto(fileEntry);
+    await page.evaluate(initialize, data);
+  } else {
+    await page.addInitScript(initialize, data);
+  }
 }
 
 async function layout(page) {
@@ -147,9 +156,10 @@ for (const width of [390, 320]) {
 
 test('file preview keeps single-card geometry and column preference across reload', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
-  await seed(page, 1, { nav_columns: '3' });
   const entry = path.resolve(process.env.BOOKMARKS_PREVIEW_DIR || '.', 'index.html');
-  await page.goto(pathToFileURL(entry).href);
+  const fileEntry = pathToFileURL(entry).href;
+  await seed(page, 1, { nav_columns: '3' }, fileEntry);
+  await page.goto(fileEntry);
   const before = await layout(page);
   assertCompact(before);
   expect(before.columns).toBe(4);
@@ -167,9 +177,10 @@ test('file preview keeps single-card geometry and column preference across reloa
 for (const mode of ['HTTP', 'file']) {
   test(`${mode} opens ready for direct keyboard search and never steals form focus on resize`, async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
-    await seed(page, 3);
     const entry = path.resolve(process.env.BOOKMARKS_PREVIEW_DIR || '.', 'index.html');
-    await page.goto(mode === 'file' ? pathToFileURL(entry).href : '/');
+    const url = mode === 'file' ? pathToFileURL(entry).href : '/';
+    await seed(page, 3, {}, mode === 'file' ? url : undefined);
+    await page.goto(url);
     await expect(page.locator('#searchInput')).toBeFocused();
     await page.keyboard.type('minimum/2');
     await expect(page.locator('.bookmark-card')).toHaveCount(1);
