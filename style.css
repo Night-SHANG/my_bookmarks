@@ -905,7 +905,7 @@ input, textarea, select { font-family: inherit; }
   --accent:#367454;
   --accent-hover:#285b40;
   --accent-dim:#e0eadf;
-  --columns:3;
+  --columns:4;
   --font-body:'Noto Sans SC',-apple-system,'Segoe UI',sans-serif;
   --font-display:var(--font-body)
 }
@@ -1228,7 +1228,7 @@ button:focus-visible,a:focus-visible{
   gap:17px;
   padding:0;
   align-content:start;
-  grid-template-columns:repeat(var(--columns,3),minmax(0,1fr))
+  grid-template-columns:repeat(var(--columns,4),minmax(0,1fr))
 }
 .bookmark-card{
   min-height:116px;
@@ -1707,6 +1707,8 @@ html, body { height: 100%; min-height: 100%; overflow: auto; }
   flex: 1 1 0;
   min-height: 0;
   grid-template-columns: repeat(var(--columns, 4), minmax(0, 1fr));
+  /* Keep four baseline row slots; short screens use measured 1–3 rows. */
+  grid-template-rows: repeat(var(--rows, 4), var(--card-height));
   grid-auto-rows: var(--card-height);
   gap: 12px;
   padding: 0;
@@ -1787,6 +1789,11 @@ html, body { height: 100%; min-height: 100%; overflow: auto; }
 .compact-fallback .workspace { overflow: visible; }
 .compact-fallback .collection { flex: 0 0 auto; }
 .compact-fallback .bookmarks-grid { flex: 0 0 auto; height: var(--card-height); min-height: var(--card-height); }
+
+@media (min-width: 701px) {
+  /* Four 94px rows fit a standard 768px desktop without shrinking cards. */
+  .bookmarks-grid:not(.list-view) { row-gap: 10px; }
+}
 
 @media (min-width: 701px) and (max-width: 1100px) {
   .workspace { padding: 22px 22px 14px; }

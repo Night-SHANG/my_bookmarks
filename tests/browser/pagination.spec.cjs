@@ -292,14 +292,14 @@ test('resize and column preference changes clamp the current page without losing
   await seed(page, bookmarks, { nav_columns: '3' });
   await page.goto('/');
   await ready(page);
-  await expect(page.locator('#colsDisplay')).toHaveText('3列');
+  await expect(page.locator('#colsDisplay')).toHaveText('4列');
   await lastPage(page);
   let previous = await paginationState(page);
   await page.setViewportSize({ width: 1920, height: 1080 });
   await expect.poll(async () => (await paginationState(page)).pageSize).toBeGreaterThan(previous.pageSize);
   let current = await assertPage(page, bookmarks, { desktop: true });
   expect(current.page).toBe(Math.min(previous.page, current.totalPages));
-  for (let columns = 4; columns <= 8; columns += 1) {
+  for (let columns = 5; columns <= 8; columns += 1) {
     const before = await paginationState(page);
     await page.locator('#colsIncrease').click();
     await expect(page.locator('#colsDisplay')).toHaveText(`${columns}列`);
@@ -322,14 +322,14 @@ test('resize and column preference changes clamp the current page without losing
   await page.reload();
   await ready(page);
   await expect(page.locator('#colsDisplay')).toHaveText('10列');
-  for (let columns = 9; columns >= 3; columns -= 1) {
+  for (let columns = 9; columns >= 4; columns -= 1) {
     await page.locator('#colsDecrease').click();
     await expect(page.locator('#colsDisplay')).toHaveText(`${columns}列`);
     await assertPage(page, bookmarks, { desktop: true });
   }
   if (await page.locator('#colsDecrease').isEnabled()) await page.locator('#colsDecrease').click();
-  await expect(page.locator('#colsDisplay')).toHaveText('3列');
-  expect(await page.evaluate(() => localStorage.getItem('nav_columns'))).toBe('3');
+  await expect(page.locator('#colsDisplay')).toHaveText('4列');
+  expect(await page.evaluate(() => localStorage.getItem('nav_columns'))).toBe('4');
   await page.setViewportSize({ width: 1366, height: 768 });
   await ready(page);
   await visitEveryPage(page, bookmarks, { desktop: true });

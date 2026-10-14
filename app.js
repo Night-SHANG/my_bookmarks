@@ -84,15 +84,15 @@ function load() {
     } catch (e) { storageDamaged = true; return []; }
 }
 
-// ========== 列数控制（最少3列，最多10列） ==========
+// ========== 列数控制（最少4列，最多10列；窄屏按宽度降级） ==========
 
 function getColumns() {
     const saved = parseInt(readSetting(COLUMNS_KEY, '4'), 10);
-    return Number.isFinite(saved) ? Math.max(3, Math.min(10, saved)) : 4;
+    return Number.isFinite(saved) ? Math.max(4, Math.min(10, saved)) : 4;
 }
 
 function setColumns(n) {
-    n = Math.max(3, Math.min(10, n));
+    n = Math.max(4, Math.min(10, n));
     if (!writeSetting(COLUMNS_KEY, n)) return;
     applyEffectiveColumns();
     if (initialized) renderBookmarks();
@@ -113,7 +113,7 @@ function applyEffectiveColumns() {
     const explanation = listView ? `列表固定1列；网格偏好${preference}列` : actual < preference ? `窗口宽度限制为${actual}列；保存偏好${preference}列，放宽窗口后恢复` : `当前${actual}列`;
     colsDisplay.title = explanation;
     colsDisplay.setAttribute('aria-label', explanation);
-    document.getElementById('colsDecrease').disabled = listView || actual <= 3;
+    document.getElementById('colsDecrease').disabled = listView || actual <= 4;
     document.getElementById('colsIncrease').disabled = listView || actual >= Math.min(10, Math.max(1, maxFit));
     return actual;
 }
@@ -123,17 +123,23 @@ function measurePageSize() {
     const style = getComputedStyle(bookmarksGrid);
     const cardHeight = parseFloat(style.getPropertyValue('--card-height')) || (bookmarksGrid.classList.contains('list-view') ? 68 : 94);
     const gap = parseFloat(style.rowGap) || 12;
+    // Reserve the viewport's row slots even for one result or a sparse last
+    // page. Keep these tracks independent of the number of rendered cards.
+    let rows = 1;
     // Natural-height fallback still paginates, one row at a time. Never derive
     // capacity from a grid whose own rendered content determines its height.
     const app = document.querySelector('.app');
-    if (window.innerWidth <= 700 || app.classList.contains('compact-fallback')) return columns;
-    const height = bookmarksGrid.clientHeight;
-    if (bookmarksGrid.clientWidth > 0 && height < cardHeight) {
-        app.classList.add('compact-fallback');
-        return columns;
+    if (window.innerWidth > 700 && !app.classList.contains('compact-fallback')) {
+        const height = bookmarksGrid.clientHeight;
+        if (bookmarksGrid.clientWidth > 0 && height < cardHeight) {
+            app.classList.add('compact-fallback');
+        } else {
+            const available = height || Math.max(cardHeight, window.innerHeight - 300);
+            rows = Math.max(1, Math.floor((available + gap) / (cardHeight + gap)));
+        }
     }
-    const available = height || Math.max(cardHeight, window.innerHeight - 300);
-    return columns * Math.max(1, Math.floor((available + gap) / (cardHeight + gap)));
+    bookmarksGrid.style.setProperty('--rows', rows);
+    return columns * rows;
 }
 
 function renderPagination(total) {
@@ -844,7 +850,8 @@ initialized = true;
 renderAll();
 
 // 自动聚焦搜索框
-// Do not force focus on page load (avoids the mobile keyboard).
+// Focus once on initial load; re-rendering must not interrupt forms or IME.
+searchInput.focus({ preventScroll: true });
 
 window.myNav = { get bookmarks() { return bookmarks; }, save, load, getCategories, importBookmarks };
 console.log('网址导航已加载 ✓');
