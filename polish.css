@@ -86,7 +86,6 @@ button:focus-visible, a:focus-visible {
   box-shadow: 0 3px 7px rgba(35, 77, 51, .13);
 }
 .brand h1 { font-size: 19px; font-weight: 700; letter-spacing: -.035em; }
-.brand p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .category-bar { min-height: 0; flex: 1 1 0; gap: 5px; }
 .cat-chip {
   min-height: 42px;
@@ -130,7 +129,6 @@ button:focus-visible, a:focus-visible {
 .color-picker-panel { z-index: 60; border-radius: 12px; }
 .header { align-items: center; }
 .header h2 { font-size: 26px; font-weight: 700; letter-spacing: -.035em; line-height: 1.35; }
-.header p { font-size: 13px; margin-top: 4px; color: var(--text-secondary); }
 .header-actions { gap: 12px; align-items: center; }
 .columns-toolbar { gap: 8px; }
 .columns-label { font-size: 12px; }
@@ -155,7 +153,6 @@ button:focus-visible, a:focus-visible {
 .engine-tab { border-radius: 7px; padding: 4px 13px; font-size: 12px; gap: 7px; }
 .engine-tab.active { background: var(--accent-dim); border-color: transparent; color: var(--accent); }
 [data-theme="dark"] .engine-tab.active { color: var(--text-primary); border-color: var(--border-hover); }
-.search-help { font-size: 11px; }
 .collection-heading h2 { font-size: 17px; font-weight: 650; letter-spacing: -.02em; }
 .collection-heading p { font-size: 12px; color: var(--text-muted); }
 .view-switch { background: var(--bg-card); box-shadow: var(--shadow-sm); }
@@ -187,6 +184,8 @@ button:focus-visible, a:focus-visible {
 .favicon .fa-spinner { color: #657d6c; }
 .card-title { font-size: 14px; line-height: 1.5; font-weight: 650; padding-right: 15px; }
 .card-desc { font-size: 12px; color: var(--text-secondary); }
+/* 网格中不为缺少的描述补写分类；列表保留空单元，避免网址错列。 */
+.bookmarks-grid:not(.list-view) .card-desc:empty { display: none; }
 .card-url { font-size: 11px; color: var(--text-muted); }
 .card-actions { top: 5px; right: 5px; }
 .action-btn { color: var(--text-muted); border-radius: 6px; }
@@ -238,7 +237,6 @@ button:focus-visible, a:focus-visible {
   .cat-chip .cat-count { display: none; }
   .sidebar-action { font-size: 12px; }
   .header h2 { font-size: 23px; }
-  .header p { font-size: 12px; }
   .header-actions { flex-wrap: wrap; gap: 8px; }
   .header .btn-primary { min-height: 40px; padding: 9px 12px; }
   .header-theme { margin-left: auto; }

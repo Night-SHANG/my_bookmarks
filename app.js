@@ -84,18 +84,25 @@ function load() {
     } catch (e) { storageDamaged = true; return []; }
 }
 
-// ========== 列数控制（最少4列，最多10列；窄屏按宽度降级） ==========
+// ========== 列数控制（最低偏好4列，无固定上限；窄屏按宽度适配） ==========
 
 function getColumns() {
-    const saved = parseInt(readSetting(COLUMNS_KEY, '4'), 10);
-    return Number.isFinite(saved) ? Math.max(4, Math.min(10, saved)) : 4;
+    const saved = Number(readSetting(COLUMNS_KEY, '4'));
+    // 仅验证整数可精确表示，不把合法的大列数截断为产品预设上限。
+    return Number.isSafeInteger(saved) && saved > 0 ? Math.max(4, saved) : 4;
 }
 
 function setColumns(n) {
-    n = Math.max(4, Math.min(10, n));
-    if (!writeSetting(COLUMNS_KEY, n)) return;
+    if (!Number.isSafeInteger(n)) {
+        showToast('列数必须是有效整数', 'error');
+        return false;
+    }
+    n = Math.max(4, n);
+    // 先保存成功，再更新布局；失败时不改变界面与原偏好。
+    if (!writeSetting(COLUMNS_KEY, n)) return false;
     applyEffectiveColumns();
     if (initialized) renderBookmarks();
+    return true;
 }
 
 // Keep the saved preference; narrow windows may display fewer columns.
@@ -114,7 +121,7 @@ function applyEffectiveColumns() {
     colsDisplay.title = explanation;
     colsDisplay.setAttribute('aria-label', explanation);
     document.getElementById('colsDecrease').disabled = listView || actual <= 4;
-    document.getElementById('colsIncrease').disabled = listView || actual >= Math.min(10, Math.max(1, maxFit));
+    document.getElementById('colsIncrease').disabled = listView || actual >= Math.max(1, maxFit);
     return actual;
 }
 
@@ -462,7 +469,7 @@ function renderBookmarks() {
 
         const desc = document.createElement('div');
         desc.className = 'card-desc';
-        desc.textContent = b.desc || ('分类：' + (b.category || '未分类'));
+        desc.textContent = b.desc || '';
 
         meta.appendChild(title);
         meta.appendChild(desc);

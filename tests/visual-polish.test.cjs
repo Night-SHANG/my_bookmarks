@@ -53,7 +53,8 @@ test('all event-bound IDs still exist once; search and persistence code are reta
   }
   assert.match(app, /searchInput\.focus\(\{ preventScroll: true \}\)/);
   assert.match(app, /const STORAGE_KEY = 'my_nav_v2'/);
-  assert.match(app, /Math\.max\(4, Math\.min\(10, saved\)\)/);
+  // 不再断言已取消的10列上限；读取、写入、布局行为见 columns-unbounded.test.cjs。
+  assert.match(app, /Math\.max\(4, saved\)/);
   const baseCss = read('style.css');
   assert.match(baseCss, /--card-height:\s*94px/);
   assert.match(baseCss, /grid-template-rows:\s*repeat\(var\(--rows, 4\), var\(--card-height\)\)/);
