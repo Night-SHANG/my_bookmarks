@@ -1,13 +1,13 @@
 const {test,expect}=require('@playwright/test');
 const fs=require('node:fs');
+const {seedBookmarks}=require('./fixtures.cjs');
 const entry=(i)=>({id:'fixture-'+i,title:'站点 '+i,url:'https://example.org/'+i,desc:'本地测试收藏',category:'分类 '+i,icon:''});
 async function ready(page){await page.evaluate(()=>document.fonts.ready);await expect(page.locator('.bookmark-card')).not.toHaveCount(0);}
-async function capture(page,name){if((await page.locator('#demoBtn').textContent()).includes('退出演示'))await expect(page.locator('.favicon .fa-spinner')).toHaveCount(0,{timeout:30000});fs.mkdirSync('artifacts',{recursive:true});await page.screenshot({path:'artifacts/'+name+'.png',fullPage:true,animations:'disabled'});}
+async function capture(page,name){await expect(page.locator('.favicon .fa-spinner')).toHaveCount(0,{timeout:30000});fs.mkdirSync('artifacts',{recursive:true});await page.screenshot({path:'artifacts/'+name+'.png',fullPage:true,animations:'disabled'});}
 test('desktop approved design, filters, list and no runtime exceptions',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('/');await page.getByRole('button',{name:'体验演示数据',exact:true}).click();await ready(page);
+ await page.goto('/');await seedBookmarks(page);await ready(page);
  await expect(page.locator('.bookmark-card')).toHaveCount(12);
-
  await capture(page,'desktop-grid');
  await page.locator('.cat-chip').filter({hasText:'AI 工具'}).click();await expect(page.locator('.bookmark-card')).toHaveCount(2);
  await page.locator('.cat-chip').filter({hasText:'全部书签'}).click();await page.getByRole('searchbox').fill('GitHub');await expect(page.locator('.bookmark-card')).toHaveCount(1);
@@ -26,16 +26,19 @@ test('real add edit cancel delete and persistence',async({page})=>{
  const edited=page.locator('.bookmark-card').filter({hasText:'已修改'});await expect(edited).toHaveCount(1);await edited.locator('[aria-expanded]').click();page.once('dialog',d=>d.accept());await edited.locator('.delete-btn').click();await expect(page.locator('.bookmark-card').filter({hasText:'已修改'})).toHaveCount(0);
 });
 test('mobile layout category navigation and management controls',async({page})=>{
- await page.setViewportSize({width:390,height:844});await page.goto('/');await page.locator('#demoBtn').click();await ready(page);await capture(page,'mobile-grid');
+ await page.setViewportSize({width:390,height:844});await page.goto('/');await seedBookmarks(page);await ready(page);await capture(page,'mobile-grid');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  await page.locator('.cat-chip').filter({hasText:'开发工具'}).click();await expect(page.locator('#bookmarkCount')).toContainText('3 个站点');await expect(page.locator('.bookmark-card')).toHaveCount(Math.min(3,Number(await page.locator('#bookmarksGrid').getAttribute('data-page-size'))));await page.locator('#addBtn').click();await expect(page.locator('#siteTitle')).toBeVisible();await capture(page,'mobile-add');await page.locator('#modalCancelBtn').click();await expect(page.locator('#modal')).not.toHaveClass(/show/);
- await page.locator('#appearanceBtn').click();await expect(page.locator('#colsIncrease')).toBeVisible();
+ await page.locator('#appearanceBtn').click();await expect(page.locator('#resetAccent')).toBeVisible();
 });
-test('import validates before replacing and restore retains old data',async({page})=>{
+test('import validates before replacing, exports JSON and has no recovery control',async({page})=>{
  await page.goto('/');const initial=await page.evaluate(()=>window.myNav.bookmarks);
  await page.locator('#importFile').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify([{title:'危险',url:'javascript:alert(1)'}]))});await expect(page.locator('.toast-error')).toBeVisible();expect(await page.evaluate(()=>window.myNav.bookmarks)).toEqual(initial);
- page.once('dialog',d=>d.accept());await page.locator('#importFile').setInputFiles({name:'valid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify([entry(1),entry(2)]))});await expect(page.locator('.bookmark-card')).toHaveCount(2);expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('my_nav_backup')))).toEqual(initial);
- await page.locator('#dataPanelBtn').click();page.once('dialog',d=>d.accept());await page.locator('#restoreBtn').click();await expect(page.locator('.bookmark-card')).toHaveCount(initial.length);
+ page.once('dialog',d=>d.accept());await page.locator('#importFile').setInputFiles({name:'valid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify([entry(1),entry(2)]))});await expect(page.locator('.bookmark-card')).toHaveCount(2);expect(await page.evaluate(()=>localStorage.getItem('my_nav_backup'))).toBe(null);
+ await expect(page.locator('#restoreBtn')).toHaveCount(0);
+ await page.locator('#dataPanelBtn').click();const downloading=page.waitForEvent('download');await page.locator('#exportBtn').click();const download=await downloading;
+ const exported=JSON.parse(fs.readFileSync(await download.path(),'utf8'));expect(exported).toEqual([entry(1),entry(2)]);
+ page.once('dialog',d=>d.accept());await page.locator('#importFile').setInputFiles({name:'original.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(initial))});await expect(page.locator('.bookmark-card')).toHaveCount(initial.length);
 });
 test('long categories keep desktop footer visible and category scrolls',async({page})=>{
  await page.setViewportSize({width:1200,height:700});await page.addInitScript(data=>localStorage.setItem('my_nav_v2',JSON.stringify(data)),Array.from({length:35},(_,i)=>entry(i)));await page.goto('/');

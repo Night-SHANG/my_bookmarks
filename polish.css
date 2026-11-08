@@ -80,7 +80,7 @@ button:focus-visible, a:focus-visible {
   margin: 0;
   padding: 10px;
   border-radius: 11px;
-  color: white;
+  color: var(--text-on-accent);
   background: var(--accent);
   font-size: 17px;
   box-shadow: 0 3px 7px rgba(35, 77, 51, .13);
@@ -116,17 +116,41 @@ button:focus-visible, a:focus-visible {
   background: var(--bg-subtle);
   color: var(--text-secondary);
 }
-.cat-chip.active .cat-count { background: rgba(255,255,255,.16); color: white; }
+.cat-chip.active .cat-count { background: rgba(255,255,255,.16); color: var(--text-on-accent); }
 .sidebar-footer { flex-shrink: 0; padding-top: 10px; }
 .sidebar-action { border-radius: 8px; font-size: 13px; gap: 10px; padding: 10px; }
 .sidebar-action i { width: 18px; font-size: 15px; }
 .sidebar-action[aria-expanded="true"] { background: var(--bg-subtle); color: var(--text-primary); }
-.utility-panel { padding: 10px; border-radius: 12px; box-shadow: var(--shadow-sm); }
-.utility-panel .btn { min-height: 34px; font-size: 12px; }
-.utility-panel p { font-size: 11px; margin-top: 6px; line-height: 1.7; }
-.appearance-panel { align-items: center; gap: 8px; }
-.appearance-panel .appearance-label { font-size: 12px; color: var(--text-secondary); }
-.color-picker-panel { z-index: 60; border-radius: 12px; }
+.utility-panel {
+  position: fixed;
+  z-index: 100;
+  width: 304px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xl);
+}
+.utility-panel[hidden] { display: none; }
+.utility-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.utility-heading h2 { font-size: 14px; font-weight: 650; margin: 0; }
+.utility-heading .btn-icon { width: 30px; height: 30px; font-size: 13px; }
+.data-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.data-actions .btn { justify-content: center; min-height: 40px; border: 1px solid var(--border-color); border-radius: 9px; background: var(--bg-subtle); font-size: 13px; }
+.color-presets { display: grid; grid-template-columns: repeat(5, 36px); justify-content: space-between; gap: 14px 8px; padding: 2px 3px 18px; }
+.appearance-panel .color-dot { width: 36px; height: 36px; min-width: 0; }
+.appearance-panel .color-dot:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 3px; }
+.color-custom { display: flex; align-items: center; gap: 10px; }
+.color-custom label { font-size: 12px; color: var(--text-secondary); }
+.color-custom input[type="color"] { width: 32px; height: 32px; flex-shrink: 0; }
+#resetAccent { margin-left: auto; font-size: 12px; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 8px; }
+
 .header { align-items: center; }
 .header h2 { font-size: 26px; font-weight: 700; letter-spacing: -.035em; line-height: 1.35; }
 .header-actions { gap: 12px; align-items: center; }
@@ -185,7 +209,6 @@ button:focus-visible, a:focus-visible {
 .card-title { font-size: 14px; line-height: 1.5; font-weight: 650; padding-right: 15px; }
 .card-desc { font-size: 12px; color: var(--text-secondary); }
 /* 网格中不为缺少的描述补写分类；列表保留空单元，避免网址错列。 */
-.bookmarks-grid:not(.list-view) .card-desc:empty { display: none; }
 .card-url { font-size: 11px; color: var(--text-muted); }
 .card-actions { top: 5px; right: 5px; }
 .action-btn { color: var(--text-muted); border-radius: 6px; }
@@ -193,7 +216,15 @@ button:focus-visible, a:focus-visible {
 .card-actions.open { border-radius: 9px; box-shadow: var(--shadow-md); }
 .card-actions.open .action-btn { color: var(--text-secondary); }
 .card-actions.open .delete-btn:hover { color: #b3261e; background: #fff0ed; }
-.list-view .bookmark-card { border-radius: 10px; }
+.list-view .bookmark-card { border-radius: 9px; box-shadow: none; }
+.list-view .bookmark-card:hover { background: var(--bg-subtle); border-color: var(--border-hover); box-shadow: none; }
+.list-view .favicon { width: 34px; height: 34px; padding: 5px; border-radius: 9px; }
+.list-view .favicon img { width: 24px; height: 24px; }
+.list-view .card-title { font-size: 14px; line-height: 20px; font-weight: 650; }
+.list-view .card-url { font-size: 11px; line-height: 17px; color: var(--text-muted); }
+.list-view .card-desc { font-size: 12px; line-height: 18px; color: var(--text-secondary); }
+.list-view .card-category { font-size: 11px; line-height: 20px; padding: 1px 8px; border-radius: 6px; background: var(--bg-subtle); color: var(--text-secondary); }
+
 .pagination { border-top: 1px solid var(--border-color); padding-top: 13px; }
 .pagination button { height: 38px; border-radius: 9px; font-size: 13px; box-shadow: var(--shadow-sm); }
 .pagination button:disabled { box-shadow: none; }
@@ -252,7 +283,6 @@ button:focus-visible, a:focus-visible {
   .pagination { padding-top: 15px; }
   .workspace-footer { font-size: 10px; }
   .workspace-footer button { font-size: 10px; }
-  .color-picker-panel { max-width: calc(100vw - 56px); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }

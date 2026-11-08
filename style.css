@@ -807,36 +807,6 @@ input, textarea, select { font-family: inherit; }
 }
 
 /* === 颜色选择器 === */
-.color-picker-wrapper {
-  position: relative;
-}
-
-.color-picker-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  padding: 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
-  z-index: 50;
-  display: none;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 210px;
-}
-
-.color-picker-panel.show {
-  display: flex;
-  animation: modalIn 0.2s var(--ease-spring);
-}
-
-.color-presets {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
 
 .color-dot {
   width: 26px;
@@ -1056,33 +1026,11 @@ button:focus-visible,a:focus-visible{
   background:var(--bg-subtle);
   border-radius:8px
 }
-.utility-panel{
-  padding:10px;
-  background:var(--bg-card);
-  border:1px solid var(--border-color);
-  border-radius:10px;
-  margin:6px 0
-}
 .utility-panel[hidden]{
   display:none
 }
-.utility-panel p{
-  font-size:12px;
-  color:var(--text-secondary)
-}
-.appearance-panel{
-  display:flex;
-  gap:6px;
-  flex-wrap:wrap
-}
 .grid-control{
   margin:0
-}
-.color-picker-panel{
-  left:0;
-  right:auto;
-  bottom:calc(100% + 8px);
-  top:auto
 }
 .color-dot{
   min-width:26px
@@ -1324,25 +1272,6 @@ button:focus-visible,a:focus-visible{
   margin-left:auto;
   font-size:10px
 }
-.list-view{
-  grid-template-columns:1fr
-}
-.list-view .bookmark-card{
-  min-height:78px;
-  padding:13px 20px
-}
-.list-view .meta{
-  display:grid;
-  grid-template-columns:minmax(150px,1fr) minmax(120px,1fr) minmax(130px,1fr);
-  align-items:center;
-  gap:20px
-}
-.list-view .card-title{
-  margin:0
-}
-.list-view .card-desc,.list-view .card-url{
-  margin:0
-}
 .storage-warning{
   padding:14px;
   background:#fff2d8;
@@ -1480,10 +1409,6 @@ button:focus-visible,a:focus-visible{
     font-size:14px;
     width:14px
   }
-  .utility-panel{
-    width:100%;
-    order:3
-  }
   .workspace{
     padding:20px
   }
@@ -1568,14 +1493,6 @@ button:focus-visible,a:focus-visible{
     top:5px;
     right:3px
   }
-  .list-view .meta{
-    display:flex;
-    align-items:flex-start;
-    gap:1px
-  }
-  .list-view .bookmark-card{
-    min-height:94px
-  }
   .workspace-footer{
     padding-top:25px;
     font-size:11px;
@@ -1583,11 +1500,6 @@ button:focus-visible,a:focus-visible{
   }
   .version{
     margin-left:0
-  }
-  .color-picker-panel{
-    bottom:auto;
-    top:calc(100% + 8px);
-    left:0
   }
   .modal-content{
     max-height:90vh;
@@ -1727,10 +1639,44 @@ html, body { height: 100%; min-height: 100%; overflow: auto; }
 .card-title { font-size: 16px; line-height: 1.5; padding-right: 15px; }
 .card-desc, .card-url { font-size: 13px; line-height: 1.45; margin-top: 2px; }
 .card-actions { top: 5px; right: 5px; }
-.list-view { --card-height: 68px; grid-template-columns: minmax(0, 1fr); }
-.list-view .bookmark-card { min-height: 0; padding: 9px 14px; }
-.list-view .meta { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 20px; padding-right: 26px; }
-.list-view .card-desc, .list-view .card-url { margin: 0; }
+/* 列表使用明确的名称/网址区域，不把三段文字平均分成三列。 */
+.card-category { display: none; }
+.bookmarks-grid.list-view { --card-height: 68px; grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
+.list-view .bookmark-card {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) minmax(60px, 108px) 28px;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  min-height: 0;
+}
+.list-view .meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  grid-template-areas: "title description" "url description";
+  align-items: center;
+  gap: 1px 24px;
+  min-width: 0;
+  padding: 0;
+}
+.list-view .meta:not(.has-description) { grid-template-columns: minmax(0, 1fr); grid-template-areas: "title" "url"; }
+.list-view .card-title { grid-area: title; padding: 0; margin: 0; }
+.list-view .card-url { grid-area: url; margin: 0; }
+.list-view .card-desc { grid-area: description; margin: 0; }
+.list-view .card-desc:empty { display: none; }
+.list-view .card-category { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; justify-self: start; max-width: 100%; }
+.list-view .card-category:empty { visibility: hidden; }
+.list-view .card-actions { top: 50%; right: 12px; transform: translateY(-50%); }
+@media (max-width: 1100px) {
+  .list-view .meta { grid-template-columns: minmax(0, 1fr); grid-template-areas: "title" "url"; }
+  .list-view .card-desc { display: none; }
+}
+@media (max-width: 700px) {
+  .bookmarks-grid.list-view { --card-height: 72px; }
+  .list-view .bookmark-card { grid-template-columns: 34px minmax(0, 1fr) 28px; gap: 10px; padding: 10px 12px; }
+  .list-view .card-category { display: none; }
+}
+
 .pagination {
   display: flex;
   align-items: center;
@@ -1844,10 +1790,6 @@ html, body { height: 100%; min-height: 100%; overflow: auto; }
   .favicon img { width: 30px; height: 30px; }
   .card-title { font-size: 16px; }
   .card-desc, .card-url { font-size: 13px; }
-  .list-view { --card-height: 72px; }
-  .list-view .bookmark-card { min-height: 0; padding: 4px 12px; }
-  .list-view .meta { display: flex; align-items: stretch; gap: 0; padding-right: 12px; }
-  .list-view .card-title { margin: 0; }
   .pagination { flex-direction: column; gap: 9px; padding-top: 16px; }
   .pagination-controls, .page-numbers { gap: 5px; }
   .pagination button { min-width: 32px; height: 36px; padding: 0 9px; font-size: 13px; }

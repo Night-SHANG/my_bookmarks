@@ -130,5 +130,7 @@ test('remove redundant slogans but retain search and form accessible names', () 
   assert.match(html, /id="searchInput"[^>]*aria-label="[^"]+"/);
   for (const id of ['siteTitle','siteUrl','siteCategory','siteIcon','siteDesc']) assert.ok(html.includes('for="'+id+'"'));
   assert.ok(html.includes('id="storageWarning"'));
-  assert.ok(html.includes('恢复上次备份'));
+  assert.ok(html.includes('导入 JSON'));
+  assert.ok(html.includes('导出 JSON'));
+  assert.ok(!html.includes('恢复上次备份')); // 本轮明确退役，不再作为无障碍标签保留。
 });

@@ -18,8 +18,6 @@ const DEFAULT_BOOKMARKS = [
 
 // ========== 状态 ==========
 let storageDamaged = false;
-let demoMode = false;
-let demoOriginal = null;
 let bookmarks = load();
 let currentCategory = '全部';
 let currentEngine = 'baidu';
@@ -48,6 +46,13 @@ const siteIcon = document.getElementById('siteIcon');
 let modalMode = 'add';
 let editingId = null;
 let modalReturnFocus = null;
+let activeUtilityPanel = null;
+const utilityPanels = new Map([
+    ['appearanceBtn', {button: document.getElementById('appearanceBtn'), panel: document.getElementById('appearancePanel')}],
+    ['dataPanelBtn', {button: document.getElementById('dataPanelBtn'), panel: document.getElementById('dataPanel')}]
+]);
+let importReadVersion = 0;
+let activeImportReader = null;
 
 // ========== 工具函数 ==========
 
@@ -57,7 +62,6 @@ function genId() {
 
 function save(next = bookmarks) {
     if (storageDamaged) { showToast('原数据无法读取，请先导出原始数据后再导入修复文件', 'error'); return false; }
-    if (demoMode) { bookmarks = next; return true; }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); bookmarks = next; return true; }
     catch (e) { showToast('保存失败：浏览器存储不可用或空间不足，原收藏未改变', 'error'); return false; }
 }
@@ -189,27 +193,53 @@ const DEFAULT_ACCENT = '#367454';
 
 function initAccent() {
     const saved = readSetting(ACCENT_KEY, '');
-    if (saved) applyAccent(saved);
-    else updateColorDots(DEFAULT_ACCENT);
+    renderAccent(/^#[0-9a-f]{6}$/i.test(saved) ? saved : null);
+}
+
+// 读取只绘制；用户修改先保存，成功后才更新界面。
+function renderAccent(color) {
+    const style = document.documentElement.style;
+    if (color) {
+        style.setProperty('--accent', color);
+        style.setProperty('--accent-hover', adjustBrightness(color, -20));
+        style.setProperty('--accent-dim', hexToRgba(color, 0.08));
+        style.setProperty('--text-on-accent', accentTextColor(color));
+    } else {
+        // 移除覆盖而不是写死浅色值，让深浅主题各自恢复默认。
+        ['--accent', '--accent-hover', '--accent-dim', '--text-on-accent'].forEach(key => style.removeProperty(key));
+    }
+    const active = color || DEFAULT_ACCENT;
+    updateColorDots(active);
+    document.getElementById('customColor').value = active;
 }
 
 function applyAccent(color) {
-    if (!/^#[0-9a-f]{6}$/i.test(color)) return;
-    document.documentElement.style.setProperty('--accent', color);
-    document.documentElement.style.setProperty('--accent-hover', adjustBrightness(color, -20));
-    document.documentElement.style.setProperty('--accent-dim', hexToRgba(color, 0.08));
-    writeSetting(ACCENT_KEY, color);
-    updateColorDots(color);
+    if (!/^#[0-9a-f]{6}$/i.test(color)) return false;
+    if (!writeSetting(ACCENT_KEY, color)) { initAccent(); return false; }
+    renderAccent(color);
+    return true;
+}
 
-    // 更新自定义颜色输入
-    const customInput = document.getElementById('customColor');
-    if (customInput) customInput.value = color;
+function resetAccent() {
+    try { localStorage.removeItem(ACCENT_KEY); }
+    catch (e) { showToast('主题色无法重置，请检查浏览器存储权限', 'error'); return false; }
+    renderAccent(null);
+    return true;
 }
 
 function updateColorDots(activeColor) {
     document.querySelectorAll('.color-dot').forEach(dot => {
-        dot.classList.toggle('active', dot.dataset.color === activeColor);
+        const active = dot.dataset.color.toLowerCase() === activeColor.toLowerCase();
+        dot.classList.toggle('active', active);
+        dot.setAttribute('aria-pressed', String(active));
     });
+}
+
+function accentTextColor(hex) {
+    const channels = [1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16) / 255)
+        .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    return luminance > 0.179 ? '#000000' : '#ffffff';
 }
 
 function hexToRgba(hex, alpha) {
@@ -229,27 +259,93 @@ function adjustBrightness(hex, amount) {
     return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
 }
 
-// 颜色选择器交互
-document.getElementById('colorPickerBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    document.getElementById('colorPanel').classList.toggle('show');
-});
-
+// 颜色选择器交互：外观面板直接展示色板，不再嵌套第二层开关。
 document.querySelectorAll('.color-dot').forEach(dot => {
     dot.addEventListener('click', () => applyAccent(dot.dataset.color));
 });
+document.getElementById('customColor').addEventListener('input', e => applyAccent(e.target.value));
+document.getElementById('resetAccent').addEventListener('click', resetAccent);
 
-document.getElementById('customColor').addEventListener('input', (e) => {
-    applyAccent(e.target.value);
-});
+// ========== 辅助浮层 ==========
 
-// 点击外部关闭颜色面板
-document.addEventListener('click', (e) => {
-    const panel = document.getElementById('colorPanel');
-    if (!e.target.closest('.color-picker-wrapper') && panel.classList.contains('show')) {
-        panel.classList.remove('show');
+function positionUtilityPanel() {
+    const entry = utilityPanels.get(activeUtilityPanel);
+    if (!entry) return;
+    const viewport = window.visualViewport;
+    const width = viewport?.width || document.documentElement.clientWidth || window.innerWidth;
+    const height = viewport?.height || window.innerHeight;
+    const offsetX = viewport?.offsetLeft || 0;
+    const offsetY = viewport?.offsetTop || 0;
+    const margin = 12, gap = 10;
+    const {button, panel} = entry;
+    const anchor = button.getBoundingClientRect();
+    if (anchor.bottom < offsetY || anchor.top > offsetY + height) { closeUtilityPanel(false); return; }
+    panel.style.maxWidth = Math.max(0, width - margin * 2) + 'px';
+    panel.style.maxHeight = Math.max(0, height - margin * 2) + 'px';
+    const bounds = panel.getBoundingClientRect();
+    let left = width > 700 ? anchor.right + gap : anchor.left;
+    if (width > 700 && left + bounds.width > offsetX + width - margin) left = anchor.left - bounds.width - gap;
+    let top = width > 700 ? anchor.bottom - bounds.height : anchor.bottom + gap;
+    if (top + bounds.height > offsetY + height - margin) top = anchor.top - bounds.height - gap;
+    panel.style.left = Math.max(offsetX + margin, Math.min(left, offsetX + width - bounds.width - margin)) + 'px';
+    panel.style.top = Math.max(offsetY + margin, Math.min(top, offsetY + height - bounds.height - margin)) + 'px';
+}
+
+function closeUtilityPanel(restoreFocus = false) {
+    const entry = utilityPanels.get(activeUtilityPanel);
+    activeUtilityPanel = null;
+    if (!entry) return;
+    entry.panel.hidden = true;
+    entry.button.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) entry.button.focus({preventScroll: true});
+}
+
+function toggleUtilityPanel(buttonId) {
+    const entry = utilityPanels.get(buttonId);
+    if (!entry) return;
+    if (activeUtilityPanel === buttonId) { closeUtilityPanel(true); return; }
+    closeUtilityPanel(false);
+    activeUtilityPanel = buttonId;
+    entry.panel.hidden = false;
+    entry.button.setAttribute('aria-expanded', 'true');
+    positionUtilityPanel();
+    (entry.panel.querySelector('.color-dot, #importBtn') || entry.panel.querySelector('button:not([disabled]), input:not([disabled])'))?.focus({preventScroll: true});
+}
+
+function handleUtilityDismiss(event) {
+    const entry = utilityPanels.get(activeUtilityPanel);
+    if (!entry || entry.panel.contains(event.target)) return;
+    // 由触发器自身完成切换，避免外部关闭后又误判为重新打开。
+    if ([...utilityPanels.values()].some(item => item.button.contains(event.target))) return;
+    closeUtilityPanel(false);
+}
+
+function handleUtilityFocus(event) {
+    handleUtilityDismiss(event);
+}
+
+function handleUtilityKeydown(event) {
+    const entry = utilityPanels.get(activeUtilityPanel);
+    if (!entry) return;
+    if (event.key === 'Escape') { event.preventDefault(); closeUtilityPanel(true); return; }
+    if (event.key !== 'Tab') return;
+    const items = [...entry.panel.querySelectorAll('button:not([disabled]), input:not([disabled])')];
+    if ((event.shiftKey && document.activeElement === items[0]) || (!event.shiftKey && document.activeElement === items.at(-1))) {
+        // 非模态浮层不困住键盘：返回触发器后继续原页面的Tab顺序。
+        closeUtilityPanel(true);
+        if (event.shiftKey) event.preventDefault();
     }
-});
+}
+
+for (const [id, entry] of utilityPanels) entry.button.addEventListener('click', () => toggleUtilityPanel(id));
+document.querySelectorAll('[data-close-panel]').forEach(button => button.addEventListener('click', () => closeUtilityPanel(true)));
+document.addEventListener('click', handleUtilityDismiss);
+document.addEventListener('focusin', handleUtilityFocus);
+document.addEventListener('keydown', handleUtilityKeydown);
+window.addEventListener('resize', positionUtilityPanel);
+window.addEventListener('scroll', positionUtilityPanel, {capture: true, passive: true});
+window.visualViewport?.addEventListener('resize', positionUtilityPanel);
+window.visualViewport?.addEventListener('scroll', positionUtilityPanel);
 
 // ========== 图标缓存 ==========
 
@@ -393,7 +489,7 @@ function renderBookmarks() {
     renderPagination(list.length);
 
     document.getElementById('collectionTitle').textContent = currentCategory === '全部' ? '全部书签' : currentCategory;
-    document.getElementById('bookmarkCount').textContent = `${list.length} 个站点${searchQuery ? ' · 搜索结果' : ''}${demoMode ? ' · 演示数据（不会写入收藏）' : ''}`;
+    document.getElementById('bookmarkCount').textContent = `${list.length} 个站点${searchQuery ? ' · 搜索结果' : ''}`;
     if (bookmarks.length === 0) {
         emptyState.style.display = 'flex';
         bookmarksGrid.style.display = 'none';
@@ -457,7 +553,7 @@ function renderBookmarks() {
 
         // 信息区
         const meta = document.createElement('div');
-        meta.className = 'meta';
+        meta.className = 'meta' + (b.desc?.trim() ? ' has-description' : '');
 
         const title = document.createElement('div');
         title.className = 'card-title';
@@ -474,6 +570,11 @@ function renderBookmarks() {
         meta.appendChild(title);
         meta.appendChild(desc);
         meta.appendChild(url);
+
+        const category = document.createElement('span');
+        category.className = 'card-category';
+        category.textContent = b.category && b.category !== '全部' ? b.category : '';
+        category.title = category.textContent;
 
         // 操作按钮
         const actions = document.createElement('div');
@@ -518,6 +619,7 @@ function renderBookmarks() {
 
         card.appendChild(fav);
         card.appendChild(meta);
+        card.appendChild(category);
         card.appendChild(actions);
         bookmarksGrid.appendChild(card);
     });
@@ -600,6 +702,7 @@ document.getElementById('modalSave').addEventListener('click', () => {
 });
 
 function openModal(mode, entry) {
+    closeUtilityPanel(false);
     modalReturnFocus = document.activeElement;
     modalMode = mode;
     modal.classList.add('show');
@@ -744,7 +847,7 @@ function handleCategoryDrop(e) {
             const newCats = [...categories];
             const [moved] = newCats.splice(draggedIndex, 1);
             newCats.splice(targetIndex, 0, moved);
-            if (!demoMode && !writeSetting(CATEGORY_ORDER_KEY, JSON.stringify(newCats))) return;
+            if (!writeSetting(CATEGORY_ORDER_KEY, JSON.stringify(newCats))) return;
 
             // DOM 直接交换
             if (draggedIndex < targetIndex) {
@@ -759,6 +862,7 @@ function handleCategoryDrop(e) {
 // ========== 导入/导出 ==========
 
 document.getElementById('exportBtn').addEventListener('click', () => {
+    closeUtilityPanel(true);
     const blob = new Blob([storageDamaged ? readSetting(STORAGE_KEY, '[]') : JSON.stringify(bookmarks, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -768,19 +872,32 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 });
 
 const importFile = document.getElementById('importFile');
-document.getElementById('importBtn').addEventListener('click', () => importFile.click());
+document.getElementById('importBtn').addEventListener('click', () => { closeUtilityPanel(true); importFile.click(); });
 
-importFile.addEventListener('change', (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
+function readImportFile(file) {
+    if (!file) return;
+    const version = ++importReadVersion;
+    if (activeImportReader?.readyState === 1) activeImportReader.abort();
     const reader = new FileReader();
+    activeImportReader = reader;
     reader.onload = () => {
-        try {
-            const data = JSON.parse(reader.result);
-            importBookmarks(data);
-        } catch (err) { showToast('JSON 解析错误', 'error'); }
+        if (version !== importReadVersion) return;
+        activeImportReader = null;
+        let data;
+        try { data = JSON.parse(reader.result); }
+        catch (error) { showToast('JSON 解析错误，当前收藏未改变', 'error'); return; }
+        importBookmarks(data);
     };
-    reader.readAsText(f);
+    reader.onerror = () => {
+        if (version !== importReadVersion) return;
+        activeImportReader = null;
+        showToast('文件读取失败，当前收藏未改变', 'error');
+    };
+    reader.readAsText(file);
+}
+
+importFile.addEventListener('change', e => {
+    readImportFile(e.target.files[0]);
     importFile.value = '';
 });
 
@@ -820,6 +937,7 @@ function showToast(message, type = 'info') {
 // ========== 键盘快捷键 ==========
 
 document.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented) return;
     if (e.key === '/' && !isInputFocused()) {
         e.preventDefault();
         searchInput.focus();
@@ -828,11 +946,7 @@ document.addEventListener('keydown', (e) => {
         if (modal.classList.contains('show')) {
             closeModal();
         } else {
-            // 关闭颜色面板
-            const panel = document.getElementById('colorPanel');
-            if (panel.classList.contains('show')) {
-                panel.classList.remove('show');
-            } else if (document.activeElement === searchInput) {
+            if (document.activeElement === searchInput) {
                 searchInput.blur();
                 searchInput.value = '';
                 searchQuery = ''; currentPage = 1;
@@ -864,26 +978,19 @@ window.myNav = { get bookmarks() { return bookmarks; }, save, load, getCategorie
 console.log('网址导航已加载 ✓');
 
 
-function importBookmarks(data, restoring = false) {
+function importBookmarks(data) {
     if (!validBookmarks(data)) { showToast('导入失败：请使用包含有效标题和 http / https 链接的书签数组', 'error'); return false; }
-    if (demoMode) { showToast('请先退出演示，再导入自己的收藏', 'info'); return false; }
-    if (!confirm(restoring ? '恢复上次备份？当前收藏将先保存为新的备份。' : `导入 ${data.length} 个站点并替换当前收藏？替换前将自动保留一份备份。`)) return false;
+    if (!confirm(`导入 ${data.length} 个站点将替换当前收藏。请先导出 JSON 保存副本。继续导入？`)) return false;
     const ids = new Set();
-    const next = data.map(b => { let id = typeof b.id === 'string' && b.id ? b.id : genId(); while (ids.has(id)) id = genId(); ids.add(id); return {...b, id}; });
-    let previousBackup;
-    try {
-        const old = localStorage.getItem(STORAGE_KEY) ?? JSON.stringify(bookmarks);
-        previousBackup = localStorage.getItem('my_nav_backup');
-        // Keep the old recovery point independently before replacing its key.
-        if (previousBackup !== null) localStorage.setItem('my_nav_backup_previous', previousBackup);
-        if (old !== null) localStorage.setItem('my_nav_backup', old);
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
-        catch (error) {
-            if (previousBackup !== null) localStorage.setItem('my_nav_backup', previousBackup);
-            else localStorage.removeItem('my_nav_backup');
-            throw error;
-        }
-    } catch (e) { showToast('导入未完成：无法保存备份或新数据，当前收藏未改变；较早备份仍保留', 'error'); return false; }
+    const next = data.map(b => {
+        let id = typeof b.id === 'string' && b.id ? b.id : genId();
+        while (ids.has(id)) id = genId();
+        ids.add(id);
+        return {...b, id};
+    });
+    // 单键同步写入成功后才更新内存；不创建或删除历史快照。
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
+    catch (error) { showToast('导入失败：浏览器存储不可用或空间不足，当前收藏未改变', 'error'); return false; }
     bookmarks = next; storageDamaged = false; currentCategory = '全部'; currentPage = 1;
     document.getElementById('storageWarning').hidden = true;
     renderAll(); showToast(`导入成功，共 ${next.length} 个书签`, 'success'); return true;
@@ -897,28 +1004,7 @@ function applyView(view) {
 }
 document.getElementById('gridViewBtn').addEventListener('click', () => applyView('grid'));
 document.getElementById('listViewBtn').addEventListener('click', () => applyView('list'));
-for (const [buttonId, panelId] of [['dataPanelBtn','dataPanel'],['appearanceBtn','appearancePanel']]) {
-    const button = document.getElementById(buttonId), panel = document.getElementById(panelId);
-    button.addEventListener('click', () => { panel.hidden = !panel.hidden; button.setAttribute('aria-expanded', !panel.hidden); });
-}
-document.getElementById('restoreBtn').addEventListener('click', () => {
-    try { const raw = readSetting('my_nav_backup', ''); if (!raw) { showToast('还没有可恢复的备份', 'info'); return; } importBookmarks(JSON.parse(raw), true); }
-    catch (e) { showToast('备份无法读取，请导入有效的 JSON 文件', 'error'); }
-});
 if (storageDamaged) { const warning = document.getElementById('storageWarning'); warning.hidden = false; warning.textContent = '原收藏数据无法读取或已经损坏。原始数据未被覆盖，请先从「导入 / 导出」导出原文件，再导入修复后的 JSON。'; }
-const DEMO_BOOKMARKS = [
- ['百度','www.baidu.com','中文搜索引擎','阅读学习'],['ChatGPT','chatgpt.com','思考、创作与探索','AI 工具'],['通义千问','qwen.ai','你的 AI 助手','AI 工具'],
- ['GitHub','github.com','代码与开源项目','开发工具'],['MDN','developer.mozilla.org','Web 开发文档','开发工具'],['Vercel','vercel.com','让想法上线','开发工具'],
- ['Figma','figma.com','设计与协作','设计灵感'],['Dribbble','dribbble.com','界面与视觉灵感','设计灵感'],['Pinterest','pinterest.com','发现与收集灵感','设计灵感'],
- ['Notion','notion.so','知识与笔记','阅读学习'],['哔哩哔哩','www.bilibili.com','视频与创作','影音娱乐'],['知乎','www.zhihu.com','问答与知识','阅读学习']
-].map(([title, domain, desc, category], i) => ({id:'demo-'+i,title,url:'https://'+domain+'/',desc,category,icon:'https://icons.duckduckgo.com/ip3/'+domain+'.ico'}));
-document.getElementById('demoBtn').addEventListener('click', () => {
-    if (!demoMode) { demoOriginal = bookmarks; bookmarks = DEMO_BOOKMARKS.map(b => ({...b})); demoMode = true; }
-    else { bookmarks = demoOriginal; demoOriginal = null; demoMode = false; }
-    currentCategory = '全部'; currentPage = 1; searchInput.value = ''; searchQuery = '';
-    document.getElementById('demoBtn').textContent = demoMode ? '退出演示，回到我的收藏' : '体验演示数据';
-    renderAll();
-});
 document.addEventListener('click', () => document.querySelectorAll('.card-actions.open').forEach(x => { x.classList.remove('open'); x.querySelector('[aria-expanded]')?.setAttribute('aria-expanded','false'); }));
 modal.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
