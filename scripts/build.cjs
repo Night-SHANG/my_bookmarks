@@ -1,2 +1,14 @@
-const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-fs.mkdirSync('dist',{recursive:true});const manifest=[];for(const name of ['index.html','style.css','app.js','favicon.ico']){const bytes=fs.readFileSync(name);fs.writeFileSync(path.join('dist',name),bytes);manifest.push({file:name,bytes:bytes.length,sha256:crypto.createHash('sha256').update(bytes).digest('hex')})}fs.writeFileSync('dist/manifest.json',JSON.stringify(manifest,null,2));console.log('Static package verified:',manifest.length,'files');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+
+// 只复制运行所需静态文件和第三方资源说明，不捆绑字体或开发依赖。
+const files = ['index.html', 'style.css', 'polish.css', 'icons.css', 'app.js', 'favicon.ico', 'THIRD_PARTY_NOTICES.md'];
+fs.mkdirSync('dist', {recursive: true});
+const manifest = files.map(file => {
+  const bytes = fs.readFileSync(file);
+  fs.writeFileSync(path.join('dist', file), bytes);
+  return {file, bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex')};
+});
+fs.writeFileSync('dist/manifest.json', JSON.stringify(manifest, null, 2));
+console.log('Static package verified:', manifest.length, 'files');

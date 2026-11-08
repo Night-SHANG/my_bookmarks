@@ -2,9 +2,11 @@
 
 个人网址导航，原生 HTML / CSS / JavaScript，数据保存在当前浏览器。
 
-## 方案一预览
+## 视觉统一预览
 
 暖白与森林绿、分类侧栏、收藏卡片 / 列表视图；保留搜索、增删改、拖动排序、主题色和列数、JSON 导入导出；底部分页按视口完整行计算容量。
+
+本轮在原有开发版上统一配色、字体、按钮、卡片与深浅主题，不增加新的业务功能。`polish.css` 是独立美化层；`icons.css` 内置页面所需的 SVG 图标，不再依赖远程 UI 图标字体或 Google Fonts。`app.js` 和原 `style.css` 保持基线 e2d50c4 的原始内容。验证范围与尚未完成事项见 `docs/visual-polish-2026-11-08.md`；本轮不继承上一轮的视觉通过结论。
 
 底部“体验演示数据”只使用内存中的示例，不写入你的收藏；退出或刷新恢复自己的数据。
 
@@ -12,7 +14,7 @@
 
 解压交付包后，直接双击 `preview/index.html`。请保留同目录的 CSS、JS 与图标文件，无需安装 Node 或启动服务器。顶栏可调整列数；书签超过首屏容量时使用底部页码。桌面默认4列、最低4列，支持4–10列；旧3列设置按4列读取。普通桌面预留至少4行固定尺寸槽位，只有1个书签、搜索只剩1项或尾页不足时，空位留白，卡片不会放大。窄屏/矮屏放不下时按可用空间减少实际列/行，不为留空强制滚动。
 
-file:// 下本地存储由浏览器决定；更换文件路径或浏览器可能看到不同收藏，更新前请导出 JSON。HTTP 及 GitHub Pages 仍支持原静态文件。
+file:// 下本地存储由浏览器决定；更换文件路径或浏览器可能看到不同收藏，更新前请导出 JSON。HTTP 及 GitHub Pages 仍支持静态文件部署。
 
 打开或刷新页面后即可直接输入搜索，不必先点击搜索框。聚焦只在初始化时执行一次，编辑/新增弹窗、分页和窗口缩放不会抢走当前输入焦点。移动浏览器是否弹出软键盘由其自身策略决定。
 
@@ -28,11 +30,11 @@ npm run preflight
 npm run build
 ```
 
-打开本机 http://localhost:4173/。`dist/` 是可部署的静态产物，`manifest.json` 记录文件大小与 SHA256。
+打开本机 http://localhost:4173/。`dist/` 是静态产物，`manifest.json` 记录文件大小与 SHA256。部署时应包含 `polish.css`、`icons.css` 和第三方说明，而不只是原来的四个文件。
 
 ## 数据与恢复
 
-原有 `my_nav_v2` 书签、`category_order` 排序、`favicon_cache_v1`、`nav_theme`、`nav_columns`、`nav_accent` 继续兼容。新 `nav_view` 只记录网格/列表偏好。
+原有 `my_nav_v2` 书签、`category_order` 排序、`favicon_cache_v1`、`nav_theme`、`nav_columns`、`nav_accent` 继续兼容。`nav_view` 记录网格/列表偏好。
 
 导入 JSON 会要求确认，验证整批结构和 HTTP(S) 地址后替换当前收藏，并将旧数据保留为 `my_nav_backup`。导入/导出菜单可以恢复上次备份。损坏的原数据不会静默覆盖，可先导出原始文件用于修复。浏览器禁用存储或空间不足时，页面不会报告保存成功。
 
@@ -40,11 +42,11 @@ npm run build
 
 ## 外部资源与许可
 
-沿用 Font Awesome Free 6.4.0：字体 SIL OFL 1.1，代码 MIT，图标 CC BY 4.0，见 https://fontawesome.com/license/free 。字体使用 Google Fonts 的 Outfit / Noto Sans SC；站点图标请求站点自身或 DuckDuckGo favicon 服务。离线或第三方资源失败时使用系统字体和图标回退，不影响本地收藏数据。
+UI 使用 Font Awesome Free 6.7.2 的 SVG 子集，许可证为 CC BY 4.0，已转换为本地 CSS mask，详情见 `THIRD_PARTY_NOTICES.md`。未捆绑字体文件；正文使用操作系统已有字体。网站 favicon 仍请求站点自身或 DuckDuckGo 服务，失败时显示本地通用图标；不承诺离线取得第三方网站 logo。
 
 测试开发依赖 jsdom 26.1.0（MIT），不随运行时静态包发布。原仓库未声明项目整体开源许可证，本次不代替作者授予新许可。
 
-设计与验证范围见 `docs/design-and-validation.md`，视觉验收状态见 `design-qa.md`。
+历史设计与验证范围见 `docs/design-and-validation.md` 和 `design-qa.md`；本轮状态以 `docs/visual-polish-2026-11-08.md` 为准。
 
 ## Chromium 运行时回归
 
@@ -55,7 +57,7 @@ npx playwright install --with-deps chromium
 npm run test:browser
 ```
 
-开发分支 GitHub Actions 自动运行全套快速回归与真实浏览器用例，并上传桌面、手机、弹窗、长分类与深色截图。浏览器测试只使用内置演示/测试数据，不需要账户或额外 Secrets，也不部署线上。
+开发分支 GitHub Actions 配置为运行全套快速回归与真实浏览器用例，并上传桌面、手机、弹窗、长分类与深色截图。本轮新增测试阻断外部网络资源，单独检查本地图标和布局降级。浏览器测试只使用内置演示/测试数据，不需要账户或额外 Secrets，也不部署线上。
 
 ## 小窗口说明
 
