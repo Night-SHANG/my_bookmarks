@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>我的导航 · 个人收藏夹</title>
     <meta name="description" content="个人网址导航 — 快速访问常用网站">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -17,6 +17,7 @@
   <div class="brand"><i class="fas fa-bookmark" aria-hidden="true"></i><div><h1>我的导航</h1></div></div>
   <nav class="category-bar" id="categoryBar" aria-label="书签分类"></nav>
   <div class="sidebar-footer">
+   <button class="sidebar-action" id="categoryOrderBtn" type="button" aria-expanded="false" aria-controls="categoryOrderPanel" aria-haspopup="dialog"><i class="fas fa-list" aria-hidden="true"></i>分类排序</button>
    <button class="sidebar-action" id="dataPanelBtn" type="button" aria-expanded="false" aria-controls="dataPanel" aria-haspopup="dialog"><i class="fas fa-arrow-up-from-bracket" aria-hidden="true"></i>导入 / 导出</button>
    <button class="sidebar-action" id="appearanceBtn" type="button" aria-expanded="false" aria-controls="appearancePanel" aria-haspopup="dialog"><i class="fas fa-gear" aria-hidden="true"></i>外观设置</button>
   </div>
@@ -30,17 +31,17 @@
      <span class="cols-display" id="colsDisplay" aria-live="polite">4列</span>
      <button class="btn btn-icon" id="colsIncrease" title="增加列数" aria-label="增加列数" type="button"><i class="fas fa-plus" aria-hidden="true"></i></button>
     </div></div>
-    <button class="btn btn-icon header-theme" id="themeToggle" type="button" title="切换深浅主题" aria-label="切换深浅主题"><i class="fas fa-moon" id="themeIcon" aria-hidden="true"></i></button>
+    <button class="btn btn-icon header-theme" id="themeToggle" type="button" title="切换为深色模式" aria-label="深色模式" aria-pressed="false"><i class="fas fa-moon" id="themeIcon" aria-hidden="true"></i></button>
     <button class="btn btn-primary" id="addBtn"><i class="fas fa-plus" aria-hidden="true"></i><span>添加站点</span></button>
    </div>
   </header>
   <div id="storageWarning" class="storage-warning" role="alert" hidden></div>
   <section class="search-section" aria-label="查找网站">
    <div class="search-wrapper"><i class="fas fa-search search-icon" aria-hidden="true"></i><input type="search" id="searchInput" class="search-input" placeholder="搜索书签、描述或网址…" aria-label="搜索书签、描述或网址" aria-describedby="searchHelp" title="输入筛选书签；Enter 联网搜索" autocomplete="off"><kbd class="search-kbd">/</kbd></div>
-   <div class="engine-row"><span>联网搜索：</span><div class="engine-tabs" id="engineSelector"><button class="engine-tab active" data-engine="baidu">百度</button><button class="engine-tab" data-engine="google"><i class="fab fa-google" aria-hidden="true"></i>Google</button><button class="engine-tab" data-engine="bing">必应</button></div><span class="sr-only" id="searchHelp">输入内容筛选书签；按 Enter 使用所选引擎联网搜索，或打开输入的网址。</span></div>
+   <div class="engine-row"><span>联网搜索：</span><div class="engine-tabs" id="engineSelector" role="group" aria-label="搜索引擎"><button class="engine-tab active" data-engine="baidu" aria-pressed="true" aria-label="使用 百度 搜索">百度</button><button class="engine-tab" data-engine="google" aria-pressed="false" aria-label="使用 Google 搜索"><i class="fab fa-google" aria-hidden="true"></i>Google</button><button class="engine-tab" data-engine="bing" aria-pressed="false" aria-label="使用 必应 搜索">必应</button></div><span class="sr-only" id="searchHelp">输入内容筛选书签；按 Enter 使用所选引擎联网搜索，或打开输入的网址。</span></div>
   </section>
   <section class="collection" aria-label="收藏网站">
-   <div class="collection-heading"><div><h2 id="collectionTitle">全部书签</h2><p id="bookmarkCount" aria-live="polite"></p></div><div class="view-switch" aria-label="显示方式"><button id="gridViewBtn" class="active" title="网格视图" aria-label="网格视图" aria-pressed="true"><i class="fas fa-th-large" aria-hidden="true"></i></button><button id="listViewBtn" title="列表视图" aria-label="列表视图" aria-pressed="false"><i class="fas fa-list" aria-hidden="true"></i></button></div></div>
+   <div class="collection-heading"><div><h2 id="collectionTitle">全部书签</h2><p id="bookmarkCount" aria-live="polite"></p></div></div>
    <main class="bookmarks-grid" id="bookmarksGrid"></main>
    <nav class="pagination" id="pagination" aria-label="书签分页">
     <span class="page-summary" id="pageSummary"></span>
@@ -59,42 +60,58 @@
     <!-- 辅助面板脱离主布局；同一时刻只打开一个。 -->
     <section class="utility-panel" id="dataPanel" role="dialog" aria-modal="false" aria-labelledby="dataPanelTitle" hidden>
         <div class="utility-heading"><h2 id="dataPanelTitle">导入 / 导出</h2><button type="button" class="btn btn-icon" data-close-panel aria-label="关闭导入导出"><i class="fas fa-times" aria-hidden="true"></i></button></div>
+        <p class="task-error" id="dataError" role="alert" hidden></p>
+        <p id="importStatus" role="status" hidden></p>
         <div class="data-actions"><button class="btn btn-ghost" id="importBtn" type="button">导入 JSON</button><button class="btn btn-ghost" id="exportBtn" type="button">导出 JSON</button></div>
     </section>
     <section class="utility-panel appearance-panel" id="appearancePanel" role="dialog" aria-modal="false" aria-labelledby="appearanceTitle" hidden>
         <div class="utility-heading"><h2 id="appearanceTitle">主题色</h2><button type="button" class="btn btn-icon" data-close-panel aria-label="关闭外观设置"><i class="fas fa-times" aria-hidden="true"></i></button></div>
+        <p class="task-error" id="appearanceError" role="alert" hidden></p>
         <div class="color-presets" role="group" aria-label="预设主题色">
-            <button type="button" class="color-dot" data-color="#367454" style="background:#367454" title="森林绿" aria-label="森林绿" aria-pressed="false"></button>
-            <button type="button" class="color-dot" data-color="#c9553d" style="background:#c9553d" title="赤陶橙" aria-label="赤陶橙" aria-pressed="false"></button>
-            <button type="button" class="color-dot" data-color="#4f46e5" style="background:#4f46e5" title="靛蓝" aria-label="靛蓝" aria-pressed="false"></button>
-            <button type="button" class="color-dot" data-color="#059669" style="background:#059669" title="翡翠绿" aria-label="翡翠绿" aria-pressed="false"></button>
-            <button type="button" class="color-dot" data-color="#d97706" style="background:#d97706" title="琥珀黄" aria-label="琥珀黄" aria-pressed="false"></button>
-            <button type="button" class="color-dot" data-color="#e11d48" style="background:#e11d48" title="玫瑰红" aria-label="玫瑰红" aria-pressed="false"></button>
-            <button type="button" class="color-dot" data-color="#7c3aed" style="background:#7c3aed" title="紫罗兰" aria-label="紫罗兰" aria-pressed="false"></button>
-            <button type="button" class="color-dot" data-color="#0284c7" style="background:#0284c7" title="天蓝" aria-label="天蓝" aria-pressed="false"></button>
-            <button type="button" class="color-dot" data-color="#475569" style="background:#475569" title="石板灰" aria-label="石板灰" aria-pressed="false"></button>
+            <button type="button" class="color-dot" data-color="#73d548" style="background:#73d548" title="鲜叶绿" aria-label="鲜叶绿" aria-pressed="false"></button>
+            <button type="button" class="color-dot" data-color="#54c795" style="background:#54c795" title="薄荷绿" aria-label="薄荷绿" aria-pressed="false"></button>
+            <button type="button" class="color-dot" data-color="#49beb0" style="background:#49beb0" title="湖水青" aria-label="湖水青" aria-pressed="false"></button>
+            <button type="button" class="color-dot" data-color="#5db9df" style="background:#5db9df" title="晴空蓝" aria-label="晴空蓝" aria-pressed="false"></button>
+            <button type="button" class="color-dot" data-color="#799be0" style="background:#799be0" title="矢车菊蓝" aria-label="矢车菊蓝" aria-pressed="false"></button>
+            <button type="button" class="color-dot" data-color="#a28cdb" style="background:#a28cdb" title="鸢尾紫" aria-label="鸢尾紫" aria-pressed="false"></button>
+            <button type="button" class="color-dot" data-color="#db91ae" style="background:#db91ae" title="樱花粉" aria-label="樱花粉" aria-pressed="false"></button>
+            <button type="button" class="color-dot" data-color="#e8ae70" style="background:#e8ae70" title="蜜杏橙" aria-label="蜜杏橙" aria-pressed="false"></button>
+            <button type="button" class="color-dot" data-color="#d9c35e" style="background:#d9c35e" title="柠檬黄" aria-label="柠檬黄" aria-pressed="false"></button>
         </div>
-        <div class="color-custom"><label for="customColor">自定义</label><input type="color" id="customColor" value="#367454"><button type="button" class="btn btn-ghost" id="resetAccent">恢复默认</button></div>
+        <div class="color-custom"><label for="customColor">自定义</label><input type="color" id="customColor" value="#73d548"><button type="button" class="btn btn-ghost" id="resetAccent">恢复默认</button></div>
     </section>
+
+    <section class="utility-panel" id="categoryOrderPanel" role="dialog" aria-modal="false" aria-labelledby="categoryOrderTitle" hidden>
+        <div class="utility-heading"><h2 id="categoryOrderTitle">分类排序</h2><button type="button" class="btn btn-icon" data-close-panel aria-label="关闭分类排序"><i class="fas fa-times" aria-hidden="true"></i></button></div>
+        <p class="task-error" id="categoryOrderError" role="alert" hidden></p>
+        <label for="categoryOrderSelect">选择分类</label>
+        <select id="categoryOrderSelect"></select>
+        <div class="data-actions"><button type="button" class="btn btn-ghost" id="categoryUpBtn">上移</button><button type="button" class="btn btn-ghost" id="categoryDownBtn">下移</button></div>
+        <p id="categoryOrderStatus" class="sr-only" role="status"></p>
+    </section>
+    <aside id="operationError" class="task-alert" role="alert" hidden><span data-error-text></span><button type="button" class="btn btn-icon" id="dismissOperationError" aria-label="关闭错误提示"><i class="fas fa-times" aria-hidden="true"></i></button></aside>
 
     <!-- 模态框：添加/编辑 -->
     <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-        <div class="modal-content">
+        <form class="modal-content" id="siteForm" novalidate>
             <div class="modal-header">
                 <h2 id="modalTitle">添加站点</h2>
-                <button class="modal-close" id="modalCancel" title="关闭" aria-label="关闭弹窗">
+                <button type="button" class="modal-close" id="modalCancel" title="关闭" aria-label="关闭弹窗">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body">
+                <p class="task-error" id="formError" role="alert" hidden></p>
                 <div class="form-row">
                     <div class="form-field">
-                        <label for="siteTitle">网站标题</label>
-                        <input id="siteTitle" type="text" placeholder="例如：Bilibili">
+                        <label for="siteTitle">网站标题（必填）</label>
+                        <input id="siteTitle" type="text" aria-describedby="siteTitleError" required placeholder="例如：Bilibili">
+                        <p class="field-error" id="siteTitleError" hidden></p>
                     </div>
                     <div class="form-field">
-                        <label for="siteUrl">网站链接</label>
-                        <input id="siteUrl" type="text" placeholder="https://www.bilibili.com">
+                        <label for="siteUrl">网站链接（必填）</label>
+                        <input id="siteUrl" type="text" aria-describedby="siteUrlError" required inputmode="url" placeholder="https://www.bilibili.com">
+                        <p class="field-error" id="siteUrlError" hidden></p>
                     </div>
                 </div>
                 <div class="form-row">
@@ -104,7 +121,8 @@
                     </div>
                     <div class="form-field">
                         <label for="siteIcon">图标（可选）</label>
-                        <input id="siteIcon" type="text" placeholder="留空则自动抓取">
+                        <input id="siteIcon" type="text" aria-describedby="siteIconError" inputmode="url" placeholder="留空则自动抓取">
+                        <p class="field-error" id="siteIconError" hidden></p>
                     </div>
                 </div>
                 <div class="form-row">
@@ -115,10 +133,10 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-ghost" id="modalCancelBtn">取消</button>
-                <button class="btn btn-primary" id="modalSave">保存</button>
+                <button type="button" class="btn btn-ghost" id="modalCancelBtn">取消</button>
+                <button type="submit" class="btn btn-primary" id="modalSave">保存</button>
             </div>
-        </div>
+        </form>
     </div>
 
     <!-- Toast 通知容器 -->

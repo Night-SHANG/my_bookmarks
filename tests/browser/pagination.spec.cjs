@@ -171,7 +171,7 @@ async function visitEveryPage(page, expectedBookmarks, options) {
 }
 
 async function managementReachable(page, { mayScroll = false } = {}) {
-  for (const selector of ['#addBtn', '#dataPanelBtn', '#appearanceBtn', '#colsDecrease', '#colsIncrease', '#gridViewBtn', '#listViewBtn']) {
+  for (const selector of ['#addBtn', '#dataPanelBtn', '#appearanceBtn', '#colsDecrease', '#colsIncrease']) {
     const control = page.locator(selector);
     if (mayScroll) await control.scrollIntoViewIfNeeded();
     await expect(control).toBeInViewport();
@@ -309,20 +309,23 @@ test('resize and column preference changes clamp the current page without losing
   await expect(page.locator('#colsIncrease')).toBeDisabled();
   await page.setViewportSize({ width: 2400, height: 1080 });
   await ready(page);
-  for (let columns = 9; columns <= 10; columns += 1) {
+  const capacity = await page.locator(gridSelector).evaluate(grid => {
+    const gap = parseFloat(getComputedStyle(grid).columnGap);
+    return Math.max(1, Math.floor((grid.clientWidth + gap) / (180 + gap)));
+  });
+  expect(capacity).toBeGreaterThan(10);
+  for (let columns = 9; columns <= capacity; columns += 1) {
     previous = current;
     await page.locator('#colsIncrease').click();
     await expect(page.locator('#colsDisplay')).toHaveText(`${columns}列`);
     current = await assertPage(page, bookmarks, { desktop: true });
     expect(current.page).toBe(Math.min(previous.page, current.totalPages));
   }
-  if (await page.locator('#colsIncrease').isEnabled()) await page.locator('#colsIncrease').click();
-  await expect(page.locator('#colsDisplay')).toHaveText('10列');
-  expect(await page.evaluate(() => localStorage.getItem('nav_columns'))).toBe('10');
-  await page.reload();
-  await ready(page);
-  await expect(page.locator('#colsDisplay')).toHaveText('10列');
-  for (let columns = 9; columns >= 4; columns -= 1) {
+  await expect(page.locator('#colsIncrease')).toBeDisabled();
+  expect(await page.evaluate(() => localStorage.getItem('nav_columns'))).toBe(String(capacity));
+  await page.reload(); await ready(page);
+  await expect(page.locator('#colsDisplay')).toHaveText(`${capacity}列`);
+  for (let columns = capacity - 1; columns >= 4; columns -= 1) {
     await page.locator('#colsDecrease').click();
     await expect(page.locator('#colsDisplay')).toHaveText(`${columns}列`);
     await assertPage(page, bookmarks, { desktop: true });
@@ -336,22 +339,23 @@ test('resize and column preference changes clamp the current page without losing
   expect(await storedBookmarks(page)).toEqual(bookmarks);
 });
 
-test('list view is independently paginated and remains one screen high', async ({ page }) => {
+test('retired list preference opens a paginated grid and remains one screen high', async ({ page }) => {
   const bookmarks = fixture(45);
   await page.setViewportSize({ width: 1366, height: 768 });
   await seed(page, bookmarks);
   await page.goto('/');
   await ready(page);
-  await page.locator('#listViewBtn').click();
-  await expect(page.locator(gridSelector)).toHaveClass(/list-view/);
+  await page.evaluate(() => localStorage.setItem('nav_view', 'list'));
+  await page.reload(); await ready(page);
+  await expect(page.locator(gridSelector)).not.toHaveClass(/list-view/);
   expect((await paginationState(page)).totalPages).toBeGreaterThan(1);
   await assertPage(page, bookmarks, { desktop: true });
-  await screenshot(page, 'pagination-desktop-list');
+  await screenshot(page, 'pagination-legacy-list-now-grid');
   await visitEveryPage(page, bookmarks, { desktop: true });
   await managementReachable(page);
   await page.reload();
   await ready(page);
-  await expect(page.locator(gridSelector)).toHaveClass(/list-view/);
+  await expect(page.locator(gridSelector)).not.toHaveClass(/list-view/);
   await assertPage(page, bookmarks, { desktop: true });
   expect(await storedBookmarks(page)).toEqual(bookmarks);
 });

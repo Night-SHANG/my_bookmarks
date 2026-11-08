@@ -12,7 +12,7 @@ function node(id, rect={left:20,right:180,top:650,bottom:686,width:160,height:36
   const props = {}, attrs = {}, children = [];
   return {id, hidden: true, style: {setProperty:(k,v)=>props[k]=v, removeProperty:k=>delete props[k]},
     props, attrs, children, value:'', disabled:false,
-    classList:{toggle(){}}, setAttribute:(k,v)=>attrs[k]=String(v),
+    classList:{toggle(){}}, setAttribute:(k,v)=>attrs[k]=String(v), getAttribute:k=>attrs[k]??null,
     getBoundingClientRect:()=>rect,
     contains(target){return target===this || children.includes(target);},
     querySelector(){return children[0] || null;}, querySelectorAll(){return children;},
@@ -73,12 +73,12 @@ test('closing a closed panel is harmless',()=>{
 
 function accent(saved=null) {
   const values=new Map([['nav_theme','dark'],['nav_columns','16']]);if(saved!==null)values.set('nav_accent',saved);
-  let writable=true, writes=0;const root=node('root'),custom=node('customColor'),dots=[node('green'),node('blue')];dots[0].dataset={color:'#367454'};dots[1].dataset={color:'#0284c7'};
+  let writable=true, writes=0;const root=node('root'),custom=node('customColor'),dots=[node('green'),node('blue')];dots[0].dataset={color:'#73d548'};dots[1].dataset={color:'#0284c7'};
   const errors=[];
-  const ctx=vm.createContext({DEFAULT_ACCENT:'#367454',ACCENT_KEY:'nav_accent',document:{documentElement:root,getElementById:id=>id==='customColor'?custom:node(id),querySelectorAll:()=>dots},
+  const ctx=vm.createContext({DEFAULT_ACCENT:'#73d548',ACCENT_KEY:'nav_accent',document:{documentElement:root,getElementById:id=>id==='customColor'?custom:node(id),querySelectorAll:()=>dots},
     readSetting:(key,fb)=>values.get(key)??fb,writeSetting:(key,value)=>{if(!writable)return false;writes++;values.set(key,value);return true;},
-    localStorage:{removeItem:key=>{if(!writable)throw Error('blocked');writes++;values.delete(key);}},showToast:message=>errors.push(message)});
-  vm.runInContext(functions(['initAccent','renderAccent','applyAccent','resetAccent','updateColorDots','hexToRgba','adjustBrightness','accentTextColor']),ctx);
+    localStorage:{removeItem:key=>{if(!writable)throw Error('blocked');writes++;values.delete(key);}},showTaskError:message=>errors.push(message),clearTaskError(){}});
+  vm.runInContext(functions(['initAccent','renderAccent','applyAccent','resetAccent','updateColorDots','hexToRgba','adjustBrightness','accentTextColor','contrastRatio','mixHex','readableAccent','focusAccent','createAccentPalette']),ctx);
   return {ctx,values,root,custom,dots,errors,writes:()=>writes,fail:()=>writable=false};
 }
 test('loading accent is read-only',()=>{
@@ -87,8 +87,8 @@ test('loading accent is read-only',()=>{
 test('reset clears only the accent preference and theme-dependent inline overrides',()=>{
  const s=accent('#0284c7');s.ctx.initAccent();requireFunction(s.ctx,'resetAccent')();
  assert.equal(s.values.has('nav_accent'),false);assert.equal(s.values.get('nav_theme'),'dark');assert.equal(s.values.get('nav_columns'),'16');
- for(const key of ['--accent','--accent-hover','--accent-dim','--text-on-accent'])assert.equal(key in s.root.props,false);
- assert.equal(s.custom.value,'#367454');
+ for(const key of ['--accent','--accent-hover','--accent-dim','--text-on-accent','--accent-text','--text-on-accent-hover','--text-on-accent-soft','--focus-color','--focus-ring'])assert.equal(key in s.root.props,false);
+ assert.equal(s.custom.value,'#73d548');
 });
 test('failed reset and failed accent save keep visible and persisted state aligned',()=>{
  const s=accent('#0284c7');s.ctx.initAccent();s.fail();
@@ -107,7 +107,7 @@ function importer() {
  const old=[{id:'old',title:'旧',url:'https://old.example',category:'开发'}];let writable=true,confirmed=true;const values=new Map([['my_nav_v2',JSON.stringify(old)],['my_nav_backup','historic']]);const writes=[];
  const ctx=vm.createContext({STORAGE_KEY:'my_nav_v2',bookmarks:old,storageDamaged:false,currentCategory:'开发',currentPage:2,URL,confirm:()=>confirmed,
   localStorage:{setItem:(k,v)=>{if(!writable)throw Error('quota');writes.push(k);values.set(k,v);},getItem:k=>values.get(k)??null},
-  document:{getElementById:()=>node('warning')},renderAll(){},showToast(){}});
+  document:{getElementById:()=>node('warning')},renderAll(){},showToast(){},showTaskError(){},clearTaskError(){}});
  vm.runInContext(functions(['isSafeUrl','validBookmarks','genId','importBookmarks']),ctx);
  return {ctx,values,writes,fail:()=>writable=false,cancel:()=>confirmed=false};
 }
@@ -124,10 +124,13 @@ test('cancelled, invalid and quota-failed imports preserve stored and visible bo
   assert.equal(s.values.get('my_nav_v2'),before);assert.equal(s.ctx.bookmarks[0].id,'old');
  }
 });
-test('list has named text areas and a separate category instead of three equal text columns',()=>{
- assert.match(css,/\.list-view \.meta\s*\{[^}]*grid-template-areas:\s*["']title description["']\s*["']url description["']/s);
- assert.match(source,/className = 'card-category'/);
- assert.match(css,/\.list-view \.card-title\s*\{[^}]*grid-area:\s*title/s);
+test('grid preserves title, description and URL with separate link and actions',()=>{
+ assert.match(source,/meta.appendChild\(title\)/);
+ assert.match(source,/meta.appendChild\(desc\)/);
+ assert.match(source,/meta.appendChild\(url\)/);
+ assert.match(source,/card.appendChild\(link\)/);
+ assert.match(source,/card.appendChild\(actions\)/);
+ assert.doesNotMatch(source,/className = 'card-category'/);
 });
 
 test('Tab boundaries leave the non-modal panel instead of trapping focus',()=>{
@@ -142,12 +145,12 @@ test('scrolling the trigger fully out of view dismisses a detached panel',()=>{
 });
 test('theme reset remains safe after switching and repeated closure',()=>{
  const s=accent('#0284c7');s.ctx.initAccent();s.ctx.resetAccent();s.ctx.resetAccent();
- assert.equal(s.values.has('nav_accent'),false);assert.equal(s.custom.value,'#367454');assert.equal(s.values.get('nav_theme'),'dark');
+ assert.equal(s.values.has('nav_accent'),false);assert.equal(s.custom.value,'#73d548');assert.equal(s.values.get('nav_theme'),'dark');
 });
 function fileReaderHarness() {
  const readers=[], imported=[],errors=[];
  class Reader {constructor(){readers.push(this);this.readyState=0;}readAsText(){this.readyState=1;}abort(){this.readyState=2;} }
- const ctx=vm.createContext({FileReader:Reader,activeImportReader:null,importReadVersion:0,importBookmarks:data=>imported.push(data),showToast:message=>errors.push(message)});
+ const ctx=vm.createContext({FileReader:Reader,activeImportReader:null,importReadVersion:0,importBookmarks:data=>imported.push(data),showTaskError:message=>errors.push(message),clearTaskError(){},setImportReading(){}});
  vm.runInContext(functions(['readImportFile']),ctx);return {ctx,readers,imported,errors};
 }
 test('a stale async file read cannot replace the latest selection',()=>{
@@ -160,7 +163,8 @@ test('file errors and invalid JSON never reach the import commit',()=>{
  s.ctx.readImportFile({name:'unreadable.json'});s.readers[1].onerror();
  assert.equal(s.imported.length,0);assert.equal(s.errors.length,2);
 });
-test('grid row geometry is preserved while list layout changes',()=>{
- assert.match(css,/\.bookmarks-grid:not\(\.list-view\)\s*\{\s*row-gap:\s*10px/);
- assert.match(css,/\.bookmarks-grid\.list-view\s*\{[^}]*--card-height:\s*68px/);
+test('grid row geometry is preserved without list-specific layout',()=>{
+ assert.match(css,/\.bookmarks-grid\s*\{\s*row-gap:\s*10px/);
+ assert.doesNotMatch(css,/\.list-view|--size-list-row/);
+ assert.match(css,/--size-grid-row:\s*6\.2666666667rem/);
 });

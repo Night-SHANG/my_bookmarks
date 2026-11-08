@@ -37,7 +37,7 @@ for(const viewport of [{width:1366,height:768},{width:1920,height:1080}]){
 test('offline UI has local icons including dynamic category and theme glyphs',async({page})=>{
  const remoteStyles=[];page.on('request',request=>{if(['stylesheet','font'].includes(request.resourceType())&&/^https:/.test(request.url()))remoteStyles.push(request.url());});
  await prepare(page,{width:1440,height:900});
- for(const selector of ['.brand > i','.search-icon','#colsIncrease i','#addBtn i','#gridViewBtn i','[data-category="开发工具"] i','.favicon .fa-globe'])await hasGlyph(page.locator(selector).first());
+ for(const selector of ['.brand > i','.search-icon','#colsIncrease i','#addBtn i','#categoryOrderBtn i','[data-category="开发工具"] i','.favicon .fa-globe'])await hasGlyph(page.locator(selector).first());
  await page.locator('#themeToggle').click();await hasGlyph(page.locator('#themeIcon'));await expect(page.locator('html')).toHaveAttribute('data-theme','dark');expect(remoteStyles).toEqual([]);await capture(page,'dark-offline');
 });
 test('dark selection remains readable and modal keeps focus behavior',async({page})=>{

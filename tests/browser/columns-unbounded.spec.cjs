@@ -13,7 +13,6 @@ async function setup(page, columns, width=3840, count=256) {
     localStorage.setItem('my_nav_v2', JSON.stringify(data));
     localStorage.setItem('nav_columns', columns);
   }, {columns:String(columns),data:Array.from({length:count},(_,i)=>entry(i))});
-  // 只在第一次加载后种数据；刷新不覆写存档。
   await page.reload();
   await expect(page.locator('.bookmark-card').first()).toBeVisible();
 }
@@ -22,7 +21,6 @@ async function capture(page, name) {
   await expect(page.locator('.favicon .fa-spinner')).toHaveCount(0,{timeout:30000});
   await page.screenshot({path:'artifacts/columns-'+name+'.png',fullPage:false,animations:'disabled'});
 }
-
 test('ten to eleven columns works through the actual button and survives reload',async({page})=>{
   await setup(page,10);
   await expect(page.locator('#colsIncrease')).toBeEnabled();
@@ -35,18 +33,18 @@ test('ten to eleven columns works through the actual button and survives reload'
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await capture(page,'11-wide');
 });
-
-test('sixteen-column preference survives narrow, list, wide and refresh transitions',async({page})=>{
+test('sixteen-column preference survives narrow, legacy list metadata, wide and refresh transitions',async({page})=>{
   await setup(page,16);
   await expect(page.locator('#colsDisplay')).toHaveText('16列');
   const stored=await page.evaluate(()=>localStorage.getItem('my_nav_v2'));
   await page.setViewportSize({width:1366,height:768});
   await expect(page.locator('#colsDisplay')).toHaveText('5列');
   expect(await page.evaluate(()=>localStorage.getItem('nav_columns'))).toBe('16');
-  await page.locator('#listViewBtn').click();
-  await expect(page.locator('#colsDisplay')).toHaveText('1列');
-  await expect(page.locator('#colsIncrease')).toBeDisabled();
-  await page.locator('#gridViewBtn').click();
+  await page.evaluate(()=>localStorage.setItem('nav_view','list'));
+  await page.reload();
+  await expect(page.locator('#colsDisplay')).toHaveText('5列');
+  await expect(page.locator('#listViewBtn,#gridViewBtn')).toHaveCount(0);
+  await expect(page.locator('#bookmarksGrid')).not.toHaveClass(/list-view/);
   await page.setViewportSize({width:3840,height:1080});
   await expect(page.locator('#colsDisplay')).toHaveText('16列');
   await page.reload();
@@ -54,7 +52,6 @@ test('sixteen-column preference survives narrow, list, wide and refresh transiti
   expect(await page.evaluate(()=>localStorage.getItem('my_nav_v2'))).toBe(stored);
   await capture(page,'16-wide');
 });
-
 test('simplified copy retains accessible search, form labels and custom descriptions',async({page})=>{
   await setup(page,4,1366,36);
   await expect(page.getByRole('searchbox',{name:'搜索书签、描述或网址'})).toBeFocused();
@@ -68,14 +65,13 @@ test('simplified copy retains accessible search, form labels and custom descript
   await page.locator('#themeToggle').click();
   await capture(page,'clean-dark');
   await page.locator('#addBtn').click();
-  for(const label of ['网站标题','网站链接','分类','图标（可选）','描述（可选）']) await expect(page.getByLabel(label,{exact:true})).toBeVisible();
+  for(const label of ['网站标题（必填）','网站链接（必填）','分类','图标（可选）','描述（可选）']) await expect(page.getByLabel(label,{exact:true})).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('#addBtn')).toBeFocused();
   await page.setViewportSize({width:390,height:844});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await capture(page,'clean-mobile');
 });
-
 test('large preferences and 10000 bookmarks keep DOM bounded to viewport capacity',async({page})=>{
   await setup(page,1000000000000,1366,10000);
   const metrics=await page.evaluate(()=>{

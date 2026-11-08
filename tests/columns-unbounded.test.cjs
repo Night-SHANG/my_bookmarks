@@ -70,14 +70,15 @@ test('only real width capacity disables increase, not a constant ceiling', () =>
   assert.equal(s.layout(), 11);
 });
 
-test('list mode and returning to grid retain the preference', () => {
+test('a stale list class cannot reduce the grid or change its saved preference', () => {
   const s = setup('24');
-  s.list(true);
-  assert.equal(s.layout(), 1);
-  assert.equal(s.controls.colsIncrease.disabled, true);
-  assert.equal(s.controls.colsDecrease.disabled, true);
+  s.list(true); // A stale DOM class is not a product view mode anymore.
+  assert.equal(s.layout(), 24);
   assert.equal(s.stored(), '24');
-  s.list(false);
+  s.resize(1000);
+  assert.equal(s.layout(), 5);
+  assert.equal(s.stored(), '24');
+  s.resize(5000);
   assert.equal(s.layout(), 24);
 });
 

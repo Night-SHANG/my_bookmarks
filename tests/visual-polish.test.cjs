@@ -12,14 +12,12 @@ test('UI styles and typography no longer depend on remote font services', () => 
   for (const link of styles) assert.doesNotMatch(link, /href=["'](?:https?:)?\/\//);
   assert.doesNotMatch(html, /fonts\.googleapis|cdnjs\.cloudflare/);
 });
-
 test('local icon and visual layers are linked and exist', () => {
   for (const file of ['icons.css', 'polish.css']) {
     assert.ok(html.includes('href="' + file + '"'), file + ' must be linked');
     assert.ok(read(file).length > 100, file + ' must not be empty');
   }
 });
-
 test('all fixed and dynamic UI icons have embedded SVG masks', () => {
   const names = new Set((html + app).match(/fa-[a-z0-9-]+/g));
   for (const name of ['code','book-open','play-circle','folder']) names.add('fa-' + name);
@@ -36,7 +34,6 @@ test('all fixed and dynamic UI icons have embedded SVG masks', () => {
   }
   assert.doesNotMatch(css, /@font-face|\.woff|\.ttf/);
 });
-
 test('visual layer covers dark mode, keyboard focus and reduced motion', () => {
   const css = read('polish.css');
   for (const token of ['[data-theme="dark"]', ':focus-visible', 'prefers-reduced-motion', '.cat-count', '.favicon', '.modal-content']) {
@@ -44,7 +41,6 @@ test('visual layer covers dark mode, keyboard focus and reduced motion', () => {
   }
   assert.match(css, /system-ui/);
 });
-
 test('all event-bound IDs still exist once; search and persistence code are retained', () => {
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
   assert.equal(ids.length, new Set(ids).size, 'duplicate DOM IDs');
@@ -53,13 +49,13 @@ test('all event-bound IDs still exist once; search and persistence code are reta
   }
   assert.match(app, /searchInput\.focus\(\{ preventScroll: true \}\)/);
   assert.match(app, /const STORAGE_KEY = 'my_nav_v2'/);
-  // 不再断言已取消的10列上限；读取、写入、布局行为见 columns-unbounded.test.cjs。
-  assert.match(app, /Math\.max\(4, saved\)/);
+  assert.match(app, /Number\.isSafeInteger\(saved\)/);
+  assert.doesNotMatch(app, /Math\.min\(10, saved\)/);
   const baseCss = read('style.css');
-  assert.match(baseCss, /--card-height:\s*94px/);
+  assert.match(baseCss, /--card-height:\s*var\(--size-grid-row\)/);
+  assert.match(read('polish.css'), /--size-grid-row:\s*6\.2666666667rem/);
   assert.match(baseCss, /grid-template-rows:\s*repeat\(var\(--rows, 4\), var\(--card-height\)\)/);
 });
-
 test('distributed SVG subset keeps attribution and does not add fonts', () => {
   const license = read('THIRD_PARTY_NOTICES.md');
   assert.match(license, /Font Awesome Free/);

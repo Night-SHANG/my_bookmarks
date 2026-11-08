@@ -33,34 +33,37 @@ test('switching, outside click and keyboard dismissal keep one consistent open s
  await page.locator('#appearanceBtn').click();await page.locator('#addBtn').click();await expect(page.locator('#appearancePanel')).toBeHidden();await expect(page.locator('#siteTitle')).toBeFocused();
 });
 for(const mode of ['light','dark']){
- test('accent reset restores '+mode+' defaults without changing view, columns or bookmarks',async({page})=>{
-  await setup(page);if(mode==='dark')await page.locator('#themeToggle').click();await page.locator('#listViewBtn').click();
+ test('accent reset restores '+mode+' defaults without changing grid, columns or bookmarks',async({page})=>{
+  await setup(page);if(mode==='dark')await page.locator('#themeToggle').click();
   const initial=await page.evaluate(()=>({data:localStorage.getItem('my_nav_v2'),columns:localStorage.getItem('nav_columns'),accent:getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()}));
-  await page.locator('#appearanceBtn').click();await page.locator('.color-dot[data-color="#0284c7"]').click();expect(await page.evaluate(()=>localStorage.getItem('nav_accent'))).toBe('#0284c7');
-  await page.reload();await page.locator('#appearanceBtn').click();await expect(page.locator('.color-dot[data-color="#0284c7"]')).toHaveAttribute('aria-pressed','true');
-  await page.locator('#resetAccent').click();await expect(page.locator('#customColor')).toHaveValue('#367454');
+  await page.locator('#appearanceBtn').click();await page.locator('.color-dot[data-color="#5db9df"]').click();expect(await page.evaluate(()=>localStorage.getItem('nav_accent'))).toBe('#5db9df');
+  await page.reload();await page.locator('#appearanceBtn').click();await expect(page.locator('.color-dot[data-color="#5db9df"]')).toHaveAttribute('aria-pressed','true');
+  await page.locator('#resetAccent').click();await expect(page.locator('#customColor')).toHaveValue('#73d548');
   expect(await page.evaluate(()=>localStorage.getItem('nav_accent'))).toBe(null);expect(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--accent'))).toBe('');
   await page.reload();expect(await page.evaluate(()=>({data:localStorage.getItem('my_nav_v2'),columns:localStorage.getItem('nav_columns'),accent:getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()}))).toEqual(initial);
-  await expect(page.locator('html')).toHaveAttribute('data-theme',mode);await expect(page.locator('#bookmarksGrid')).toHaveClass(/list-view/);await capture(page,'list-'+mode);
+  await expect(page.locator('html')).toHaveAttribute('data-theme',mode);await expect(page.locator('#bookmarksGrid')).not.toHaveClass(/list-view/);await capture(page,'grid-'+mode);
  });
 }
-test('list aligns names and URLs, separates metadata, preserves editing and pagination',async({page})=>{
- await setup(page);await page.locator('#listViewBtn').click();const first=page.locator('.bookmark-card').first();
- const title=await first.locator('.card-title').boundingBox(),url=await first.locator('.card-url').boundingBox(),desc=await first.locator('.card-desc').boundingBox(),category=await first.locator('.card-category').boundingBox();
- expect(Math.abs(title.x-url.x)).toBeLessThan(1);expect(url.y).toBeGreaterThan(title.y);expect(desc.x).toBeGreaterThan(title.x+title.width);expect(category.x).toBeGreaterThan(desc.x);expect((await first.boundingBox()).height).toBe(68);
+test('grid keeps legal links, compact geometry, editing and complete pagination',async({page})=>{
+ await setup(page);const first=page.locator('.bookmark-card').first();
+ await expect(first.locator('.bookmark-link')).toHaveAttribute('href',sampleBookmarks[0].url);
+ await expect(first.locator('.bookmark-link button')).toHaveCount(0);
+ await expect(first.locator('.card-title')).toBeVisible();await expect(first.locator('.card-url')).toBeVisible();
+ expect((await first.boundingBox()).height).toBe(94);
  await first.locator('[aria-expanded]').click();await first.locator('.edit-btn').click();await expect(page.locator('#siteTitle')).toBeFocused();await page.locator('#modalCancelBtn').click();await expect(first.locator('[aria-expanded]')).toBeFocused();
  const seen=[];for(;;){seen.push(...await page.locator('.bookmark-card').evaluateAll(items=>items.map(item=>item.dataset.id)));if(await page.locator('#nextPage').isDisabled())break;await page.locator('#nextPage').click();}
  expect(seen).toEqual(sampleBookmarks.map(item=>item.id));expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1)).toBe(true);
 });
-test('mobile list keeps primary text and actions readable without horizontal overflow',async({page})=>{
- await setup(page,390);await page.locator('#listViewBtn').click();
- const first=page.locator('.bookmark-card').first();await expect(first.locator('.card-title')).toBeVisible();await expect(first.locator('.card-url')).toBeVisible();await expect(first.locator('.card-category')).toBeHidden();await expect(first.locator('.card-desc')).toBeHidden();
- await first.locator('[aria-expanded]').click();await expect(first.locator('.edit-btn')).toBeInViewport();await capture(page,'list-mobile');
+test('mobile grid keeps primary text and actions readable without horizontal overflow',async({page})=>{
+ await setup(page,390);
+ const first=page.locator('.bookmark-card').first();await expect(first.locator('.card-title')).toBeVisible();await expect(first.locator('.card-url')).toBeVisible();
+ await expect(page.locator('#listViewBtn,#gridViewBtn')).toHaveCount(0);
+ await first.locator('[aria-expanded]').click();await expect(first.locator('.edit-btn')).toBeInViewport();await capture(page,'grid-mobile');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 test('file-mode popovers and reset do not reload or modify bookmarks',async({page})=>{
  await setup(page,1366,true);const before=await layout(page);const saved=await page.evaluate(()=>localStorage.getItem('my_nav_v2'));
- await page.locator('#appearanceBtn').click();await page.locator('.color-dot[data-color="#0284c7"]').click();await page.locator('#resetAccent').click();unchanged(before,await layout(page));await page.keyboard.press('Escape');
+ await page.locator('#appearanceBtn').click();await page.locator('.color-dot[data-color="#5db9df"]').click();await page.locator('#resetAccent').click();unchanged(before,await layout(page));await page.keyboard.press('Escape');
  await page.reload();expect(await page.evaluate(()=>localStorage.getItem('my_nav_v2'))).toBe(saved);expect(await page.evaluate(()=>localStorage.getItem('nav_accent'))).toBe(null);await expect(page.locator('#demoBtn')).toHaveCount(0);await expect(page.locator('#restoreBtn')).toHaveCount(0);
 });
 test('large libraries do not rerender the grid when utility panels toggle',async({page})=>{

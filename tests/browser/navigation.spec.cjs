@@ -4,14 +4,14 @@ const {seedBookmarks}=require('./fixtures.cjs');
 const entry=(i)=>({id:'fixture-'+i,title:'站点 '+i,url:'https://example.org/'+i,desc:'本地测试收藏',category:'分类 '+i,icon:''});
 async function ready(page){await page.evaluate(()=>document.fonts.ready);await expect(page.locator('.bookmark-card')).not.toHaveCount(0);}
 async function capture(page,name){await expect(page.locator('.favicon .fa-spinner')).toHaveCount(0,{timeout:30000});fs.mkdirSync('artifacts',{recursive:true});await page.screenshot({path:'artifacts/'+name+'.png',fullPage:true,animations:'disabled'});}
-test('desktop approved design, filters, list and no runtime exceptions',async({page})=>{
+test('desktop approved design, filters, grid and no runtime exceptions',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');await seedBookmarks(page);await ready(page);
  await expect(page.locator('.bookmark-card')).toHaveCount(12);
  await capture(page,'desktop-grid');
  await page.locator('.cat-chip').filter({hasText:'AI 工具'}).click();await expect(page.locator('.bookmark-card')).toHaveCount(2);
  await page.locator('.cat-chip').filter({hasText:'全部书签'}).click();await page.getByRole('searchbox').fill('GitHub');await expect(page.locator('.bookmark-card')).toHaveCount(1);
- await page.getByRole('searchbox').fill('');await page.getByRole('button',{name:'列表视图',exact:true}).click();await expect(page.locator('#bookmarksGrid')).toHaveClass(/list-view/);await capture(page,'desktop-list');
+ await page.getByRole('searchbox').fill('');await expect(page.locator('#listViewBtn,#gridViewBtn')).toHaveCount(0);await capture(page,'desktop-grid-cleared');
  await page.getByRole('button',{name:'外观设置',exact:true}).click();await page.locator('#themeToggle').click();await expect(page.locator('html')).toHaveAttribute('data-theme','dark');await capture(page,'desktop-dark');
  const ratio=await page.locator('.cat-chip.active').evaluate(el=>{const st=getComputedStyle(el);const lum=c=>{const v=c.match(/[\d.]+/g).slice(0,3).map(Number).map(x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4});return .2126*v[0]+.7152*v[1]+.0722*v[2]};const a=lum(st.color),b=lum(st.backgroundColor);return(Math.max(a,b)+.05)/(Math.min(a,b)+.05)});expect(ratio).toBeGreaterThanOrEqual(4.5);
  await page.locator('#themeToggle').hover();
@@ -33,7 +33,7 @@ test('mobile layout category navigation and management controls',async({page})=>
 });
 test('import validates before replacing, exports JSON and has no recovery control',async({page})=>{
  await page.goto('/');const initial=await page.evaluate(()=>window.myNav.bookmarks);
- await page.locator('#importFile').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify([{title:'危险',url:'javascript:alert(1)'}]))});await expect(page.locator('.toast-error')).toBeVisible();expect(await page.evaluate(()=>window.myNav.bookmarks)).toEqual(initial);
+ await page.locator('#importFile').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify([{title:'危险',url:'javascript:alert(1)'}]))});await expect(page.locator('#operationError')).toBeVisible();expect(await page.evaluate(()=>window.myNav.bookmarks)).toEqual(initial);
  page.once('dialog',d=>d.accept());await page.locator('#importFile').setInputFiles({name:'valid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify([entry(1),entry(2)]))});await expect(page.locator('.bookmark-card')).toHaveCount(2);expect(await page.evaluate(()=>localStorage.getItem('my_nav_backup'))).toBe(null);
  await expect(page.locator('#restoreBtn')).toHaveCount(0);
  await page.locator('#dataPanelBtn').click();const downloading=page.waitForEvent('download');await page.locator('#exportBtn').click();const download=await downloading;

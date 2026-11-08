@@ -206,16 +206,15 @@ for (const mode of ['HTTP', 'file']) {
   });
 }
 
-test('list row height and empty states remain independent of reserved grid slots', async ({ page }) => {
+test('legacy list preference cannot change grid slots or hide empty-state controls', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
-  await seed(page, 3);
+  await seed(page, 3, {nav_view: 'list'});
   await page.goto('/');
-  await page.locator('#listViewBtn').click();
-  const list = await layout(page);
-  expect(list.columns).toBe(1);
-  expect(list.card.height).toBe(68);
-  expect(list.rowHeights.every(height => height === 68)).toBe(true);
-  expect(list.rows).toBe(list.pageSize);
+  await expect(page.locator('#listViewBtn,#gridViewBtn')).toHaveCount(0);
+  const grid = await layout(page);
+  assertCompact(grid);
+  expect(grid.columns).toBe(4);
+  expect(await page.evaluate(() => localStorage.getItem('nav_view'))).toBe('list');
   await page.getByRole('searchbox').fill('no matching result');
   await expect(page.locator('.bookmark-card')).toHaveCount(0);
   await expect(page.locator('.no-results')).toBeVisible();
