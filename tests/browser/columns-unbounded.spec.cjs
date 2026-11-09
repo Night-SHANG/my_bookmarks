@@ -22,7 +22,7 @@ test('ten to eleven columns works through the control and survives reload',async
  const columns=await page.locator('#bookmarksGrid').evaluate(el=>getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length);
  expect(columns).toBe(11);
 });
-test('sixteen columns stay sixteen across desktop resizing without rewriting preference',async({page})=>{
+test('saved sixteen-column preference adapts to narrow desktop and restores when widened',async({page})=>{
  await setup(page,16,3840,64);await expect(page.locator('#colsDisplay')).toHaveText('16列');
  await page.setViewportSize({width:1366,height:768});
  await expect(page.locator('#colsDisplay')).toHaveText('5列');
