@@ -153,23 +153,16 @@ function getColumns() {
 function applyColumnPreference() {
     const preference = getColumns();
     const gridWidth = bookmarksGrid.clientWidth || window.innerWidth - 220 - 56;
-    const style = getComputedStyle(bookmarksGrid);
-    const gap = parseFloat(style.columnGap) || 12;
-    // 历史稳定版的核心策略：列数偏好不变，实际列数受最小卡片宽度约束。
-    // 让卡片至少约 205px，避免高列数时挤成竖排图标按钮。
-    const minCardWidth = 205;
-    const maxFit = Math.max(1, Math.floor((gridWidth + gap) / (minCardWidth + gap)));
+    const gap = parseFloat(getComputedStyle(bookmarksGrid).columnGap) || 10;
+    const maxFit = Math.max(1, Math.floor((gridWidth + gap) / (205 + gap)));
     const actual = Math.min(preference, maxFit);
+
     document.documentElement.style.setProperty('--columns', String(actual));
     document.documentElement.dataset.columnLayout = 'wide';
-    colsDisplay.textContent = preference + '列';
-    const explanation = actual < preference
-        ? `列数偏好 ${preference} 列；当前窗口按卡片最小宽度自动显示 ${actual} 列`
-        : `当前按偏好显示 ${actual} 列`;
-    colsDisplay.title = explanation;
-    colsDisplay.setAttribute('aria-label', explanation);
-    document.getElementById('colsDecrease').disabled = preference <= 1;
-    document.getElementById('colsIncrease').disabled = preference >= Number.MAX_SAFE_INTEGER;
+    colsDisplay.textContent = actual + '列';
+    colsDisplay.title = actual < preference ? `当前窗口最多显示 ${actual} 列` : `当前显示 ${actual} 列`;
+    document.getElementById('colsDecrease').disabled = actual <= 1;
+    document.getElementById('colsIncrease').disabled = actual >= maxFit;
     return actual;
 }
 window.addEventListener('resize', applyColumnPreference);
@@ -203,8 +196,8 @@ function setDensity(density) {
     return true;
 }
 
-document.getElementById('colsIncrease').addEventListener('click', () => setColumns(getColumns() + 1));
-document.getElementById('colsDecrease').addEventListener('click', () => setColumns(getColumns() - 1));
+document.getElementById('colsIncrease').addEventListener('click', () => setColumns(applyColumnPreference() + 1));
+document.getElementById('colsDecrease').addEventListener('click', () => setColumns(applyColumnPreference() - 1));
 document.getElementById('densityCompactBtn').addEventListener('click', () => setDensity('compact'));
 document.getElementById('densityComfortableBtn').addEventListener('click', () => setDensity('comfortable'));
 
