@@ -639,13 +639,15 @@ function renderBookmarks() {
 
     const list = getFilteredBookmarks();
 
-    pageSize = measurePageSize();
-    totalPages = Math.max(1, Math.ceil(list.length / pageSize));
-    currentPage = Math.max(1, Math.min(currentPage, totalPages));
-    bookmarksGrid.dataset.page = currentPage;
-    bookmarksGrid.dataset.pageSize = pageSize;
-    bookmarksGrid.dataset.totalPages = totalPages;
-    renderPagination(list.length);
+    // 不做内部分页：所有筛选结果一次性渲染，由页面自然高度承载内容。
+    pageSize = Math.max(1, list.length);
+    totalPages = 1;
+    currentPage = 1;
+    delete bookmarksGrid.dataset.page;
+    delete bookmarksGrid.dataset.pageSize;
+    delete bookmarksGrid.dataset.totalPages;
+    const pagination = document.getElementById('pagination');
+    if (pagination) pagination.hidden = true;
 
     document.getElementById('collectionTitle').textContent = currentCategory === '全部' ? '全部书签' : currentCategory;
     document.getElementById('bookmarkCount').textContent = `${list.length} 个站点${searchQuery ? ' · 搜索结果' : ''}`;
@@ -669,7 +671,7 @@ function renderBookmarks() {
         return;
     }
 
-    list.slice((currentPage - 1) * pageSize, currentPage * pageSize).forEach((b, visibleIndex) => {
+    list.forEach((b, visibleIndex) => {
         const card = document.createElement('article');
         const link = document.createElement('a');
         link.className = 'bookmark-link';
@@ -771,7 +773,7 @@ function renderBookmarks() {
             if (nextId !== undefined) focusBookmark(nextId); else document.getElementById('addBtn').focus();
             showToast('已删除 ' + b.title, 'success');
         });
-        const index = (currentPage - 1) * pageSize + visibleIndex;
+        const index = visibleIndex;
         actionButton('上移', 'move-up-btn', () => moveBookmark(b.id, -1)).disabled = index <= 0;
         actionButton('下移', 'move-down-btn', () => moveBookmark(b.id, 1)).disabled = index >= list.length - 1;
         moreBtn.addEventListener('click', e => { e.stopPropagation(); toggleCardActions(actions); });
