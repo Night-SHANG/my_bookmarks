@@ -161,8 +161,8 @@ function applyColumnPreference() {
     document.documentElement.dataset.columnLayout = 'wide';
     colsDisplay.textContent = actual + '列';
     colsDisplay.title = actual < preference ? `当前窗口最多显示 ${actual} 列` : `当前显示 ${actual} 列`;
-    document.getElementById('colsDecrease').disabled = preference <= 1;
-    document.getElementById('colsIncrease').disabled = preference >= Number.MAX_SAFE_INTEGER;
+    document.getElementById('colsDecrease').disabled = actual <= 1;
+    document.getElementById('colsIncrease').disabled = actual >= maxFit;
     return actual;
 }
 
@@ -195,8 +195,8 @@ function setDensity(density) {
     return true;
 }
 
-document.getElementById('colsIncrease').addEventListener('click', () => setColumns(getColumns() + 1));
-document.getElementById('colsDecrease').addEventListener('click', () => setColumns(getColumns() - 1));
+document.getElementById('colsIncrease').addEventListener('click', () => setColumns(applyColumnPreference() + 1));
+document.getElementById('colsDecrease').addEventListener('click', () => setColumns(applyColumnPreference() - 1));
 document.getElementById('densityCompactBtn').addEventListener('click', () => setDensity('compact'));
 document.getElementById('densityComfortableBtn').addEventListener('click', () => setDensity('comfortable'));
 
