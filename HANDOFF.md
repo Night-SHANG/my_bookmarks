@@ -107,3 +107,13 @@ CI `42566860067` 的 65 项 Chromium 用例中 62 通过、3 失败。单元测�
 - CI `42602308820`：单测/build通过，Chromium 61通过、3失败。trace 显示相对路径 `http://127.0.0.1:4173/favicon.svg` 被仓库测试静态服务器以 `application/octet-stream` 返回；这不是 GitHub Pages 的生产 MIME。浏览器因此继续第二候选 `https://bookmark.example/favicon.svg`，证明代码的双基址回退正在工作，但测试服务的本地 MIME 配置错误。
 - 同一 trace 显示自动 favicon 路径 `.ico` 在 SVG fixture 响应下被 Chromium 拒绝，随后 `.png` SVG fixture 成功加载。测试不应强制断言首个候选一定成功；改为断言实际站点来源 favicon 候选成功、图片 naturalWidth 大于0。缓存与自定义图标回退也检查实际域名和 favicon 路径，不硬编码扩展名。
 - 修正测试路由：仅对本地 `/favicon.svg` 使用 `route.fulfill({path})` 提供正确 MIME，其余本地资源正常继续；外站普通 favicon 用同一已验证 SVG 响应，坏图标域名仍明确返回404。
+
+
+## 用户截图回归最终通过（2026-11-09）
+
+- 最终开发提交：`4eba36aab73a4a1af7b6ac3d203d9604045db50e`。
+- CI [42603021892](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42603021892) success：103项单元测试通过，Preflight/build通过，Chromium 64/64通过。
+- 新增4项 favicon/侧栏浏览器回归：导航页相对图标路径兼容；自动 favicon 图片成功显示；失效缓存与自定义图标 URL 回退到站点图标；短视口侧栏完整 sticky；分类过多时取消 sticky 并使用文档滚动。
+- 侧栏实际设计：在桌面自然高度能完整放入视口时固定于顶部；短桌面间距紧凑；分类超出容量则取消固定，不折叠、不内滚。
+- favicon 最终根因与修复：旧版保存的相对图标地址本应相对导航页 `document.baseURI` 解析，上一轮错误地改为相对 bookmark URL，导致旧图标路径全部失效。现先按导航页路径解析，再尝试 bookmark URL，最后自动发现；坏缓存失效后继续回退。
+- 生产尚未更新，PR 与部署后需再次核对 Pages SHA；生产备份 `backup/production-live-20261109@927079d` 保持不变。
