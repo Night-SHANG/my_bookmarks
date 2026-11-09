@@ -49,3 +49,14 @@ CI `42566860067` 的 65 项 Chromium 用例中 62 通过、3 失败。单元测�
 - 5,000条收藏下，工具面板开关30次的P95约0.8ms，网格子节点变化0次。
 - 实际截图和数据位于该 Actions 的 `browser-evidence` artifact；截图包括桌面1366/1920、手机320/390、深色主题、外观/数据面板、长分类、编辑/添加弹窗。
 - 本次尚未合并或部署。发布前须先同步 README / 视觉验收记录，再以相同最终代码 SHA 创建 PR；成功后保留生产备份分支不变。
+
+
+## 正式合并与 GitHub Pages 部署完成（2026-11-09，北京时间；覆盖此前“尚未部署”状态）
+
+- PR [#2 取消书签分页并固定桌面列数偏好](https://github.com/Night-SHANG/my_bookmarks/pull/2) 已 squash merge。
+- 正式 main 合并提交：`4d46dc43e426727742e8067334343f3bb2937668`。
+- GitHub Pages 工作流 [42591253656](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42591253656) completed / success；Pages deployment payload 的 `pages_build_version` 与 main SHA 一致，日志报告部署成功。
+- Pages artifact：`13661680449`。已下载并检查其 `artifact.tar`，包含最终 `index.html`、`app.js`、`style.css`、`polish.css`、`site.webmanifest`、favicon 与安装图标；HTML 中保留紧凑/舒适密度控件，不含分页控件；JS 中不再包含 `currentPage`、`pageSize`、`measurePageSize`、`renderPagination` 或 `applyEffectiveColumns`。
+- 正式地址：<https://night-shang.github.io/my_bookmarks/>。
+- 生产备份分支 `backup/production-live-20261109` 仍为旧线上快照 `927079d74af120abc5d6feecdf1a389f9a367e75`，没有被覆盖。
+- 独立网页读取工具无法直接打开 Pages 域名；本次上线验证依据是 Pages 部署成功状态、部署 SHA、上传 artifact 和 artifact 内实际文件检查。不能据此声称已完成真实用户浏览器/实体设备巡检。
