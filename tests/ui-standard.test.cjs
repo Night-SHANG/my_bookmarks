@@ -108,7 +108,7 @@ test('errors are persistent task feedback and demo/snapshot features remain remo
 test('columns have no product ceiling and the effective grid adapts to available width',()=>{
  assert.doesNotMatch(functions(['getColumns','setColumns']),/Math\.min\(10|>=\s*10/);
  assert.match(functions(['applyColumnPreference']),/clientWidth/);
- assert.match(functions(['applyColumnPreference']),/205/);
+ assert.match(functions(['applyColumnPreference']),/180/);
  assert.doesNotMatch(source,/function measurePageSize|function renderPagination|ResizeObserver/);
  assert.match(source,/function getDensity/);assert.match(css,/--card-height/);
 });
