@@ -7,7 +7,7 @@ const files = [
   'index.html', 'style.css', 'polish.css', 'icons.css', 'app.js',
   'favicon.svg', 'favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png',
   'apple-touch-icon.png', 'android-chrome-192x192.png', 'android-chrome-512x512.png',
-  'THIRD_PARTY_NOTICES.md'
+  'site.webmanifest', 'THIRD_PARTY_NOTICES.md'
 ];
 fs.mkdirSync('dist', {recursive: true});
 const manifest = files.map(file => {
