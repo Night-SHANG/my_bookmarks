@@ -319,3 +319,29 @@ button:focus-visible, a:focus-visible {
     box-shadow: none;
   }
 }
+
+
+/* 首页书签采用自然文档流：不在书签容器内滚动、不裁切、不固定可视高度。 */
+.app {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+.bookmarks-grid {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  overflow-y: visible;
+  overflow-x: visible;
+  align-content: start;
+}
+.collection {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+.workspace {
+  min-height: 100vh;
+  overflow: visible;
+}
