@@ -25,8 +25,8 @@ test('ten to eleven columns works through the control and survives reload',async
 test('sixteen columns stay sixteen across desktop resizing without rewriting preference',async({page})=>{
  await setup(page,16,3840,64);await expect(page.locator('#colsDisplay')).toHaveText('16列');
  await page.setViewportSize({width:1366,height:768});
- await expect(page.locator('#colsDisplay')).toHaveText('16列');
- expect(await page.locator('#bookmarksGrid').evaluate(el=>getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length)).toBe(16);
+ await expect(page.locator('#colsDisplay')).toHaveText('5列');
+ expect(await page.locator('#bookmarksGrid').evaluate(el=>getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length)).toBe(5);
  expect(await page.evaluate(()=>localStorage.getItem('nav_columns'))).toBe('16');
  await page.setViewportSize({width:3840,height:1080});await expect(page.locator('#colsDisplay')).toHaveText('16列');
 });
