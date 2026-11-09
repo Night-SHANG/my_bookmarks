@@ -430,3 +430,29 @@ body { height: auto; min-height: 100%; overflow: visible; }
   .sidebar-action i { width: 16px; font-size: .9rem; }
 }
 .favicon img { transition: opacity var(--duration-fast) ease; }
+
+
+/* 书签区使用自然文档流，不创建内部滚动容器，也不裁切内容。 */
+.app {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+.workspace {
+  min-height: 100vh;
+  overflow: visible;
+}
+.collection {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+.bookmarks-grid {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  overflow-y: visible;
+  overflow-x: visible;
+  align-content: start;
+}
