@@ -154,15 +154,15 @@ function applyColumnPreference() {
     const preference = getColumns();
     const gridWidth = bookmarksGrid.clientWidth || window.innerWidth - 220 - 56;
     const gap = parseFloat(getComputedStyle(bookmarksGrid).columnGap) || 10;
-    const maxFit = Math.max(1, Math.floor((gridWidth + gap) / (205 + gap)));
+    const maxFit = Math.max(1, Math.floor((gridWidth + gap) / (180 + gap)));
     const actual = Math.min(preference, maxFit);
 
     document.documentElement.style.setProperty('--columns', String(actual));
     document.documentElement.dataset.columnLayout = 'wide';
     colsDisplay.textContent = actual + '列';
     colsDisplay.title = actual < preference ? `当前窗口最多显示 ${actual} 列` : `当前显示 ${actual} 列`;
-    document.getElementById('colsDecrease').disabled = actual <= 1;
-    document.getElementById('colsIncrease').disabled = actual >= maxFit;
+    document.getElementById('colsDecrease').disabled = preference <= 1;
+    document.getElementById('colsIncrease').disabled = preference >= Number.MAX_SAFE_INTEGER;
     return actual;
 }
 
@@ -195,8 +195,8 @@ function setDensity(density) {
     return true;
 }
 
-document.getElementById('colsIncrease').addEventListener('click', () => setColumns(applyColumnPreference() + 1));
-document.getElementById('colsDecrease').addEventListener('click', () => setColumns(applyColumnPreference() - 1));
+document.getElementById('colsIncrease').addEventListener('click', () => setColumns(getColumns() + 1));
+document.getElementById('colsDecrease').addEventListener('click', () => setColumns(getColumns() - 1));
 document.getElementById('densityCompactBtn').addEventListener('click', () => setDensity('compact'));
 document.getElementById('densityComfortableBtn').addEventListener('click', () => setDensity('comfortable'));
 
