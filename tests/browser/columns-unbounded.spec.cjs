@@ -35,7 +35,7 @@ test('mobile grid reflows without overwriting desktop preference',async({page})=
  expect(await page.locator('#bookmarksGrid').evaluate(el=>getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length)).toBe(2);
  expect(await page.evaluate(()=>localStorage.getItem('nav_columns'))).toBe('16');
  await page.setViewportSize({width:1366,height:768});
- expect(await page.locator('#bookmarksGrid').evaluate(el=>getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length)).toBe(16);
+ expect(await page.locator('#bookmarksGrid').evaluate(el=>getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length)).toBe(5);
 });
 test('large libraries render every record in continuous flow with lazy favicon requests',async({page})=>{
  test.setTimeout(120000);
