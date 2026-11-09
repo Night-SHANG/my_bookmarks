@@ -77,3 +77,10 @@ CI `42566860067` 的 65 项 Chromium 用例中 62 通过、3 失败。单元测�
 - favicon 浏览器测试中的 SVG body 被按 `.ico` 路径提供，Chromium runner将其判为解码失败；测试改用真实 PNG 字节并返回 `image/png`。10,000条压力 fixture 原先使用相对 `favicon.svg`，被错误解析为目标网站的相对地址；改用明确的目标域名 PNG favicon 路径，并在测试路由提供成功图片，确保性能测试测量真实懒加载节点而不是大量模拟网络失败。
 - 明确图标地址解析规则：用户保存的相对图标路径应相对于书签 URL 解析，而不是相对于导航站自身的 `<base>`。自定义图标成功时不必预先生成整套回退候选；只有失败后才计算站点 favicon 候选，避免10,000条记录无必要地生成十万级 URL 字符串。
 - sticky 失败根因：`html` 和 `body` 同时设为独立 `overflow-y:auto`，产生嵌套滚动容器，sticky 侧栏并未跟随实际根滚动视口。现改为 html 作为唯一根滚动容器、body overflow visible。
+
+
+## favicon 测试路由修正（2026-11-09）
+
+- CI `42596724573`：60通过、3失败；侧栏短视口固定/自然滚动测试已通过，说明根滚动容器修复有效。
+- 剩余 favicon 失败不是产品加载逻辑：Playwright 的 `route.fulfill({body: Buffer, contentType})` fixture 未被 Chromium 按有效图像解码，浏览器继续 fallback，最后移除图片节点。性能测试因此统计到0个成功/未失败的 lazy image。
+- 将测试响应改为直接使用仓库内真实 `favicon-32x32.png` 文件：`route.fulfill({path: iconFile})`，由 Playwright 按真实 PNG 文件类型提供响应；这避免了测试自己构造/编码图片响应的问题。产品端仍保留透明加载、成功淡入和失败回退逻辑。

@@ -1,12 +1,13 @@
 const {test,expect}=require('@playwright/test');
-const iconPng=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAM0lEQVR4nO3OQQEAMAjEsGPq5mda0TNk8EkNNPX6/ix2NucAAAAAAAAAAAAAAAAAAABJMlGU','base64');
+const path=require('node:path');
+const iconFile=path.resolve(__dirname,'../../favicon-32x32.png');
 const entries=(count,categories=10)=>Array.from({length:count},(_,i)=>({id:'sidebar-'+i,title:'网站 '+i,url:'https://site-'+(i%categories)+'.example/',desc:'导航图标测试',category:'分类 '+(i%categories),icon:''}));
 async function openSeeded(page,{width=1383,height=690,data=entries(30),extras={}}={}){
  await page.setViewportSize({width,height});
  await page.route('**/*',route=>{
   const url=new URL(route.request().url());
   if(url.hostname==='127.0.0.1'||url.hostname==='localhost'||url.protocol==='file:')return route.continue();
-  if(url.pathname==='/favicon.ico')return route.fulfill({status:200,contentType:'image/png',body:iconPng});
+  if(url.pathname==='/favicon.ico')return route.fulfill({path:iconFile});
   return route.fulfill({status:404,body:''});
  });
  await page.goto('/');
