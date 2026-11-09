@@ -23,12 +23,16 @@ function setup(saved=null){
  return {context,controls,vars,attrs,errors,get:()=>context.getColumns(),set:n=>context.setColumns(n),apply:()=>context.applyColumnPreference(),stored:()=>stored,fail:()=>writable=false};
 }
 test('default is four columns without writing a preference',()=>{const s=setup();assert.equal(s.get(),4);assert.equal(s.apply(),4);assert.equal(s.stored(),null);assert.equal(s.vars['--columns'],'4');});
-for(const value of [1,3,11,16,32,100,1000000000000]){
- test('reads and displays the saved '+value+' column preference without fitting it to width',()=>{
-  const s=setup(String(value));assert.equal(s.get(),value);assert.equal(s.apply(),value);
-  assert.equal(s.vars['--columns'],String(value));assert.equal(s.context.colsDisplay.textContent,value+'列');
+for(const value of [1,3,7,9,11,16,32,100,1000000000000]){
+ test('preserves saved '+value+' column preference and fits the visible grid to width',()=>{
+  const s=setup(String(value));assert.equal(s.get(),value);
+  const visible=Math.min(value,9);
+  assert.equal(s.apply(),visible);
+  assert.equal(s.vars['--columns'],String(visible));
+  assert.equal(s.context.colsDisplay.textContent,visible+'列');
   assert.equal(s.controls.colsDecrease.disabled,value===1);
   assert.equal(s.controls.colsIncrease.disabled,false);
+  assert.equal(s.stored(),String(value));
  });
 }
 test('increments and decrements the user preference rather than a measured column count',()=>{
