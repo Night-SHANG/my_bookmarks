@@ -165,7 +165,6 @@ function applyColumnPreference() {
     document.getElementById('colsIncrease').disabled = actual >= maxFit;
     return actual;
 }
-window.addEventListener('resize', applyColumnPreference);
 
 function setColumns(n) {
     if (!Number.isSafeInteger(n) || n < 1) {
@@ -1363,4 +1362,5 @@ modal.addEventListener('keydown', e => {
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 });
 
-// Saved column preference stays stable; the effective grid reflows on viewport resize.
+// Recalculate the visible column count when the available width changes.
+window.addEventListener('resize', applyColumnPreference);
