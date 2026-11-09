@@ -46,6 +46,7 @@ test('long categories expand naturally and management actions remain reachable b
  const size=await categories.evaluate(x=>({height:x.clientHeight,scrollHeight:x.scrollHeight,overflow:getComputedStyle(x).overflowY}));
  expect(size.height).toBeGreaterThan(700);expect(size.scrollHeight).toBeLessThanOrEqual(size.height+1);
  expect(size.overflow).not.toMatch(/auto|scroll/);
+ const sidebar=page.locator('.sidebar');await expect(sidebar).not.toHaveClass(/sidebar-pinned/);
  const footer=page.locator('#appearanceBtn');expect((await footer.boundingBox()).y).toBeGreaterThan(700);
  await footer.scrollIntoViewIfNeeded();await expect(footer).toBeInViewport();
  await capture(page,'desktop-many-categories');

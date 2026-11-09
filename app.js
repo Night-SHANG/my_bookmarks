@@ -456,9 +456,20 @@ function setCachedFavicon(domain, url) {
 
 function getCachedFavicon(domain) {
     const cached = faviconCache[domain];
-    if (cached && (Date.now() - cached.timestamp < 7 * 24 * 60 * 60 * 1000)) return cached.url;
+    if (cached && typeof cached.url === 'string' && Date.now() - cached.timestamp < 7 * 24 * 60 * 60 * 1000) return cached.url;
     if (cached) { delete faviconCache[domain]; saveFaviconCache(); }
     return null;
+}
+
+function clearCachedFavicon(domain, failedUrl) {
+    const cached = faviconCache[domain];
+    if (!cached || typeof cached.url !== 'string') return;
+    let cachedUrl = cached.url;
+    try { cachedUrl = new URL(cachedUrl, location.href).href; } catch (e) { /* 忽略无效缓存地址 */ }
+    if (cachedUrl === failedUrl) {
+        delete faviconCache[domain];
+        saveFaviconCache();
+    }
 }
 
 // ========== 图标候选地址 ==========
@@ -468,8 +479,6 @@ function faviconUrlsFor(url) {
         const u = new URL(url);
         const domain = u.hostname;
         const cached = getCachedFavicon(domain);
-        if (cached) return [cached];
-
         const domainUrl = u.origin;
         const paths = [
             '/favicon.ico', '/favicon.png', '/favicon.svg',
@@ -491,10 +500,10 @@ function faviconUrlsFor(url) {
             ];
         }
 
-        let candidates = [...specificUrls];
+        const candidates = [...specificUrls];
         paths.forEach(path => candidates.push(`${domainUrl.replace(/\/$/, '')}${path}`));
         candidates.push(`https://icons.duckduckgo.com/ip3/${domain}.ico`);
-        return candidates;
+        return [...new Set([cached, ...candidates].filter(Boolean))];
     } catch (e) {
         return ['favicon.ico'];
     }
@@ -660,17 +669,20 @@ function renderBookmarks() {
         img.loading = 'lazy';
         img.decoding = 'async';
         fav.setAttribute('aria-hidden', 'true');
-        img.style.display = 'none';
-        const candidates = (b.icon && b.icon.trim()) ? [b.icon.trim()] : faviconUrlsFor(b.url);
+        img.style.display = 'block';
+        img.style.opacity = '0';
+        const candidates = [...new Set([
+            ...(b.icon && b.icon.trim() ? [b.icon.trim()] : []),
+            ...faviconUrlsFor(b.url)
+        ])];
         img.src = candidates[0];
         fav.appendChild(img);
         let idx = 0;
         scheduleFaviconFallback(fav);
         img.onload = function () {
             clearFaviconFallback(fav);
-            fav.innerHTML = '';
-            fav.appendChild(img);
-            img.style.display = 'block';
+            fav.querySelector('.fa-globe')?.remove();
+            img.style.opacity = '1';
             if (!b.icon || !b.icon.trim()) {
                 try {
                     const domain = new URL(b.url).hostname;
@@ -680,11 +692,14 @@ function renderBookmarks() {
         };
 
         img.onerror = function () {
+            const failedUrl = img.currentSrc || img.src;
+            try { clearCachedFavicon(new URL(b.url).hostname, failedUrl); } catch (e) { /* 忽略 */ }
             idx++;
-            if (idx < candidates.length) img.src = candidates[idx];
-            else {
+            if (idx < candidates.length) {
+                img.src = candidates[idx];
+            } else {
                 clearFaviconFallback(fav);
-                fav.innerHTML = '<i class="fas fa-globe" aria-label="网站图标暂不可用"></i>';
+                img.remove();
             }
         };
 
@@ -839,9 +854,21 @@ function moveBookmark(id, direction) {
     return true;
 }
 
+function syncSidebarPin() {
+    const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+    const desktop = window.matchMedia?.('(min-width: 701px)').matches ?? window.innerWidth > 700;
+    // Pin only when every category and management action fits; otherwise the whole
+    // document scrolls naturally, with no clipped or nested category viewport.
+    const fits = desktop && sidebar.scrollHeight <= window.innerHeight + 1;
+    sidebar.classList.toggle('sidebar-pinned', fits);
+}
+window.addEventListener('resize', syncSidebarPin, {passive: true});
+
 function renderAll() {
     renderCategories();
     renderBookmarks();
+    syncSidebarPin();
 }
 
 // ========== 搜索 ==========
