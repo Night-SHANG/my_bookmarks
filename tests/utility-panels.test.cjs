@@ -77,7 +77,8 @@ function accent(saved=null) {
   const errors=[];
   const ctx=vm.createContext({DEFAULT_ACCENT:'#73d548',ACCENT_KEY:'nav_accent',document:{documentElement:root,getElementById:id=>id==='customColor'?custom:node(id),querySelectorAll:()=>dots},
     readSetting:(key,fb)=>values.get(key)??fb,writeSetting:(key,value)=>{if(!writable)return false;writes++;values.set(key,value);return true;},
-    localStorage:{removeItem:key=>{if(!writable)throw Error('blocked');writes++;values.delete(key);}},showTaskError:message=>errors.push(message),clearTaskError(){}});
+    localStorage:{removeItem:key=>{if(!writable)throw Error('blocked');writes++;values.delete(key);}},
+    updateBrandAccentIcon(){},showTaskError:message=>errors.push(message),clearTaskError(){}});
   vm.runInContext(functions(['initAccent','renderAccent','applyAccent','resetAccent','updateColorDots','hexToRgba','adjustBrightness','accentTextColor','contrastRatio','mixHex','readableAccent','focusAccent','createAccentPalette']),ctx);
   return {ctx,values,root,custom,dots,errors,writes:()=>writes,fail:()=>writable=false};
 }
