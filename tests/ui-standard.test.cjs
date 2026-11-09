@@ -105,8 +105,10 @@ test('errors are persistent task feedback and demo/snapshot features remain remo
  assert.match(source,/function showTaskError/);assert.doesNotMatch(functions(['showTaskError']),/setTimeout/);
  assert.doesNotMatch(source+html,/DEMO_BOOKMARKS|demoMode|demoBtn|restoreBtn|my_nav_backup/);
 });
-test('columns have no product ceiling and resize logic is absent from preference functions',()=>{
- assert.doesNotMatch(functions(['getColumns','setColumns','applyColumnPreference']),/Math\.min\(10|>=\s*10|innerWidth|clientWidth/);
+test('columns have no product ceiling and the effective grid adapts to available width',()=>{
+ assert.doesNotMatch(functions(['getColumns','setColumns']),/Math\.min\(10|>=\s*10/);
+ assert.match(functions(['applyColumnPreference']),/clientWidth/);
+ assert.match(functions(['applyColumnPreference']),/205/);
  assert.doesNotMatch(source,/function measurePageSize|function renderPagination|ResizeObserver/);
  assert.match(source,/function getDensity/);assert.match(css,/--card-height/);
 });
