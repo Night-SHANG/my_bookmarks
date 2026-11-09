@@ -4,7 +4,7 @@
   --size-hit: 32px; --size-control: 36px; --size-grid-row: 6.2666666667rem;
   --font-small: .8rem; --font-label: .8666666667rem; --font-control: .9333333333rem;
   --layer-popover: 100; --layer-modal: 1000; --layer-feedback: 1100;
-  --accent-text: #45783b; --text-on-accent-hover: #263a32; --text-on-accent-soft: #487e3c;
+  --accent-text: #45783b; --text-on-accent-hover: #263a32; --text-on-accent-soft: #3f7134;
   --border-control: #758a7a; --error-text: #a32720; --error-bg: #fff0ed;
 
   --bg-base: #f5f6f3;
@@ -19,7 +19,7 @@
   --text-muted: #68796f;
   --text-on-accent: #263a32;
   --accent: #73d548;
-  --accent-hover: #5fc134;
+  --accent-hover: #55b72a;
   --accent-dim: #eefae9;
   --border-color: #e2e8e1;
   --border-hover: #b6c9ba;
@@ -35,8 +35,8 @@
   --focus-color: #55993f;
 }
 [data-theme="dark"] {
-  --accent: #73d548; --accent-hover: #5fc134; --accent-text: #73d548;
-  --text-on-accent-hover: #263a32; --text-on-accent-soft: #73d548;
+  --accent: #73d548; --accent-hover: #55b72a; --accent-text: #73d548;
+  --text-on-accent-hover: #1e3028; --text-on-accent-soft: #edf4ee;
   --border-control: #879b8d; --error-text: #ffb4aa; --error-bg: #402622;
   color-scheme: dark;
   --bg-base: #151c19;
@@ -86,18 +86,8 @@ button:focus-visible, a:focus-visible {
   gap: 24px;
 }
 .brand { align-items: center; gap: 11px; padding: 0 6px; }
-.brand > i {
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
-  margin: 0;
-  padding: 10px;
-  border-radius: 11px;
-  color: var(--text-on-accent);
-  background: var(--accent);
-  font-size: 1.133333333rem;
-  box-shadow: 0 3px 7px rgba(35, 77, 51, .13);
-}
+.brand-mark { display:block; flex:0 0 36px; width:36px; height:36px; margin:0; border-radius:11px; box-shadow:0 3px 7px rgba(35,77,51,.13); }
+.brand-mark [data-brand-fill] { transition:fill var(--duration-fast) ease; }
 .brand h1 { font-size: 1.266666667rem; font-weight: 700; letter-spacing: -.035em; }
 .category-bar { min-height: 0; flex: 1 1 0; gap: 5px; }
 .cat-chip {
@@ -173,7 +163,7 @@ button:focus-visible, a:focus-visible {
 .btn { font-weight: 500; transition: background var(--duration-fast) ease, border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease; }
 .btn:active { transform: none; }
 .btn-primary { box-shadow: 0 2px 5px rgba(35,77,51,.12); border-radius: 10px; }
-.btn-primary:hover { color: var(--text-on-accent-hover); box-shadow: 0 4px 10px rgba(35,77,51,.16); }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--text-on-accent-hover); box-shadow: 0 4px 10px rgba(35,77,51,.16); }
 .header .btn-primary { font-size: 0.8666666667rem; }
 .header-theme { flex-shrink: 0; width: 36px; height: 36px; border: 1px solid var(--border-color); background: var(--bg-card); }
 .search-input {

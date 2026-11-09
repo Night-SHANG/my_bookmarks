@@ -1,3 +1,15 @@
+## 主题色联动图标与部署准备（2026-11-09，北京时间）
+
+用户提出更换主题色时网页图标也应同步变化。已将 SVG 书签罗盘作为唯一动态矢量源：更新主题色会同步重绘侧栏 Logo、浏览器标签页 SVG favicon（data URL）及 `meta theme-color`。恢复默认同样联动。ICO/PNG/Apple Touch/Android 是静态回退与安装图标，不能保证已安装快捷方式在运行时随网页状态改变；README 已明确这一边界。
+
+图标包包含：favicon.svg、3尺寸 favicon.ico、16/32 PNG、180 Apple Touch、192/512 Android。构建脚本复制所有资源，静态测试检查 PNG/ICO 文件签名、尺寸、HTML引用及 dist 资源清单。浏览器测试覆盖自定义色、深浅主题切换、刷新持久化和恢复默认。
+
+此前 CI 42518383336 的 Chromium 对比度失败已定位为：深色柔和选中态使用过亮品牌色文字、自定义浅色底前景接近4.5阈值、hover颜色过浅。前景现按实际背景在深色墨色/黑/白中选择最高对比度；柔和底直接选AA前景；hover加深并重新计算前景。原4.5:1断言保留，不放宽。
+
+生产备份分支 `backup/production-live-20261109` 固定指向线上基准 `main@927079d`。开发快照 `backup/ui-polish-before-sync-20261109` 是旧开发版 `bd70f66`，不是生产备份。开发分支 `feat/bookmarks-ui-polish` 当前父提交 `cf84eaa`。本次变更提交后先运行完整质量闸门；CI触发后停止轮询并汇报。只有全部通过后才可将PR合入main并检查Pages部署；不要把开发分支推送误称为上线。
+
+---
+
 # my_bookmarks 交接
 
 ## 当前同步（2026-11-09）

@@ -235,6 +235,27 @@ function initAccent() {
 }
 
 // 读取只绘制；用户修改先保存，成功后才更新界面。
+function brandIconSvg(color) {
+    const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : DEFAULT_ACCENT;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+      <rect x="2" y="2" width="124" height="124" rx="30" fill="${safeColor}"/>
+      <path d="M39 19h50c7 0 12 5 12 12v75c0 8-8 13-15 9L64 99 42 115c-7 4-15-1-15-9V31c0-7 5-12 12-12Z" fill="#fff"/>
+      <path d="M41 65a25 25 0 0 1 40-19" fill="none" stroke="${safeColor}" stroke-width="6" stroke-linecap="round"/>
+      <path d="M87 63a25 25 0 0 1-40 19" fill="none" stroke="${safeColor}" stroke-width="6" stroke-linecap="round"/>
+      <path d="M82 35 68 67 43 93 57 59Z" fill="${safeColor}"/>
+      <path d="M82 35 68 67 57 59Z" fill="${safeColor}" opacity=".58"/>
+      <circle cx="64" cy="64" r="6" fill="#fff"/>
+    </svg>`;
+}
+function updateBrandAccentIcon(color) {
+    const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : DEFAULT_ACCENT;
+    const brand = document.getElementById('brandMark');
+    if (brand) brand.querySelectorAll('[data-brand-fill]').forEach(node => node.setAttribute('fill', safeColor));
+    const favicon = document.getElementById('dynamicFavicon');
+    if (favicon) favicon.href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(brandIconSvg(safeColor));
+    const browserThemeColor = document.getElementById('browserThemeColor');
+    if (browserThemeColor) browserThemeColor.content = safeColor.toUpperCase();
+}
 function renderAccent(color) {
     const style = document.documentElement.style;
     const keys = ['--accent', '--accent-hover', '--accent-dim', '--accent-text', '--text-on-accent', '--text-on-accent-hover', '--text-on-accent-soft', '--focus-color', '--focus-ring'];
@@ -247,6 +268,7 @@ function renderAccent(color) {
     const active = color || DEFAULT_ACCENT;
     updateColorDots(active);
     document.getElementById('customColor').value = active;
+    updateBrandAccentIcon(active);
 }
 
 function applyAccent(color) {
@@ -273,14 +295,9 @@ function updateColorDots(activeColor) {
 }
 
 function accentTextColor(hex) {
-    const channels = [1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16) / 255)
-        .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
-    const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
-    // Dark neutral ink softens pastel surfaces; fall back only when contrast requires it.
-    const ink = '#263a32';
-    if (contrastRatio(ink, hex) >= 4.5) return ink;
-    if (contrastRatio('#1e3028', hex) >= 4.5) return '#1e3028';
-    return luminance > 0.179 ? '#000000' : '#ffffff';
+    // Choose the strongest readable foreground for this exact opaque sRGB surface.
+    return ['#263a32', '#1e3028', '#000000', '#ffffff']
+        .reduce((best, candidate) => contrastRatio(candidate, hex) > contrastRatio(best, hex) ? candidate : best);
 }
 
 function contrastRatio(a, b) {
@@ -301,7 +318,7 @@ function readableAccent(color, background) {
     const fallback = accentTextColor(background);
     for (let step = 0; step <= 100; step++) {
         const candidate = mixHex(color, fallback, 1 - step / 100);
-        if (contrastRatio(candidate, background) >= 4.5) return candidate;
+        if (contrastRatio(candidate, background) >= 4.8) return candidate;
     }
     return fallback;
 }
@@ -319,7 +336,7 @@ function focusAccent(color, background) {
 }
 
 function createAccentPalette(color, background) {
-    const hover = adjustBrightness(color, -20);
+    const hover = adjustBrightness(color, -30);
     const soft = mixHex(color, background, 0.12);
     const focus = focusAccent(color, background);
     return {
@@ -327,7 +344,7 @@ function createAccentPalette(color, background) {
         '--accent-text': readableAccent(color, background === '#202b25' ? '#26332c' : '#edf1ec'),
         '--text-on-accent': accentTextColor(color),
         '--text-on-accent-hover': accentTextColor(hover),
-        '--text-on-accent-soft': readableAccent(color, soft),
+        '--text-on-accent-soft': accentTextColor(soft),
         '--focus-color': focus,
         '--focus-ring': hexToRgba(focus, background === '#202b25' ? 0.20 : 0.14)
     };

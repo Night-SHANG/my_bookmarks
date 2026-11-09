@@ -114,3 +114,27 @@ test('file entry keeps modal and sorting semantics without demo or recovery cont
  await page.locator('.bookmark-card').first().locator('.more-btn').click();await page.locator('.card-action-panel:not([hidden]) .move-down-btn').click();expect((await stored(page))[1].id).toBe('standard-0');
  await page.locator('#addBtn').click();await page.locator('#modalSave').focus();await page.keyboard.press('/');await expect(page.locator('#modalSave')).toBeFocused();await page.keyboard.press('Escape');await capture(page,'file');
 });
+
+test('accent changes recolor the brand mark, browser tab favicon and browser chrome',async({page})=>{
+ await ready(page);
+ await page.locator('#appearanceBtn').click();
+ const color='#d97706';
+ await page.locator('#customColor').evaluate((el,value)=>{el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));},color);
+ await expect(page.locator('#brandMark [data-brand-fill]').first()).toHaveAttribute('fill',color);
+ await expect(page.locator('#browserThemeColor')).toHaveAttribute('content',color.toUpperCase());
+ let href=await page.locator('#dynamicFavicon').getAttribute('href');
+ expect(href).toContain('data:image/svg+xml');
+ expect(decodeURIComponent(href.slice(href.indexOf(',')+1))).toContain(`fill="${color}"`);
+ await page.locator('#themeToggle').click();
+ await expect(page.locator('#brandMark [data-brand-fill]').first()).toHaveAttribute('fill',color);
+ href=await page.locator('#dynamicFavicon').getAttribute('href');
+ expect(decodeURIComponent(href.slice(href.indexOf(',')+1))).toContain(`fill="${color}"`);
+ await page.reload();
+ await expect(page.locator('#brandMark [data-brand-fill]').first()).toHaveAttribute('fill',color);
+ await expect(page.locator('#browserThemeColor')).toHaveAttribute('content',color.toUpperCase());
+ await page.locator('#appearanceBtn').click();await page.locator('#resetAccent').click();
+ await expect(page.locator('#brandMark [data-brand-fill]').first()).toHaveAttribute('fill','#73d548');
+ await expect(page.locator('#browserThemeColor')).toHaveAttribute('content','#73D548');
+ href=await page.locator('#dynamicFavicon').getAttribute('href');
+ expect(decodeURIComponent(href.slice(href.indexOf(',')+1))).toContain('fill="#73d548"');
+});

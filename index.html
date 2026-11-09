@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>我的导航 · 个人收藏夹</title>
     <meta name="description" content="个人网址导航 — 快速访问常用网站">
+    <meta name="theme-color" id="browserThemeColor" content="#73D548">
+    <link rel="icon" id="dynamicFavicon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="polish.css">
     <link rel="stylesheet" href="icons.css">
@@ -14,7 +19,18 @@
 <a class="skip-link" href="#searchInput">跳到搜索</a>
 <div class="app">
  <aside class="sidebar" aria-label="导航与管理">
-  <div class="brand"><i class="fas fa-bookmark" aria-hidden="true"></i><div><h1>我的导航</h1></div></div>
+  <div class="brand">
+    <svg id="brandMark" class="brand-mark" viewBox="0 0 128 128" aria-hidden="true" focusable="false">
+     <rect data-brand-fill="true" x="2" y="2" width="124" height="124" rx="30" fill="#73d548"/>
+     <path d="M39 19h50c7 0 12 5 12 12v75c0 8-8 13-15 9L64 99 42 115c-7 4-15-1-15-9V31c0-7 5-12 12-12Z" fill="#fff"/>
+     <path d="M41 65a25 25 0 0 1 40-19" fill="none" stroke="#73d548" stroke-width="6" stroke-linecap="round"/>
+     <path d="M87 63a25 25 0 0 1-40 19" fill="none" stroke="#73d548" stroke-width="6" stroke-linecap="round"/>
+     <path data-brand-fill="true" d="M82 35 68 67 43 93 57 59Z" fill="#73d548"/>
+     <path d="M82 35 68 67 57 59Z" fill="#73d548" opacity=".58"/>
+     <circle cx="64" cy="64" r="6" fill="#fff"/>
+    </svg>
+    <div><h1>我的导航</h1></div>
+   </div>
   <nav class="category-bar" id="categoryBar" aria-label="书签分类"></nav>
   <div class="sidebar-footer">
    <button class="sidebar-action" id="categoryOrderBtn" type="button" aria-expanded="false" aria-controls="categoryOrderPanel" aria-haspopup="dialog"><i class="fas fa-list" aria-hidden="true"></i>分类排序</button>

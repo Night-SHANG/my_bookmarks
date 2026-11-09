@@ -62,3 +62,26 @@ test('distributed SVG subset keeps attribution and does not add fonts', () => {
   assert.match(license, /CC BY 4\.0/);
   assert.match(license, /Fonticons/);
 });
+
+test('brand compass and favicon fallbacks exist and are included in the static build', () => {
+  const svg = read('favicon.svg');
+  assert.match(svg, /<svg[^>]+viewBox="0 0 128 128"/);
+  assert.match(svg, /fill="#73d548"/);
+  assert.match(html, /id="dynamicFavicon"[^>]+favicon\.svg/);
+  assert.match(html, /id="brandMark"[^>]*class="brand-mark"/);
+  assert.match(app, /function updateBrandAccentIcon/);
+  assert.match(app, /encodeURIComponent\(brandIconSvg\(safeColor\)\)/);
+  assert.match(app, /browserThemeColor\.content = safeColor\.toUpperCase\(\)/);
+  const images = {'favicon-16x16.png':16,'favicon-32x32.png':32,'apple-touch-icon.png':180,'android-chrome-192x192.png':192,'android-chrome-512x512.png':512};
+  for (const [file,size] of Object.entries(images)) {
+    const bytes=fs.readFileSync(file);
+    assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a',file+' PNG signature');
+    assert.equal(bytes.readUInt32BE(16),size,file+' width');
+    assert.equal(bytes.readUInt32BE(20),size,file+' height');
+    assert.ok(html.includes(file),file+' is referenced');
+  }
+  const ico=fs.readFileSync('favicon.ico');
+  assert.equal(ico.readUInt16LE(0),0);assert.equal(ico.readUInt16LE(2),1);assert.ok(ico.readUInt16LE(4)>=3);
+  const build=read('scripts/build.cjs');
+  for(const file of ['favicon.svg','favicon.ico',...Object.keys(images)])assert.ok(build.includes(file),file+' is included');
+});
