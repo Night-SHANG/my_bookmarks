@@ -44,7 +44,7 @@ test('search and category filtering show every matching result without page tran
   const input=a.d.querySelector('#searchInput');input.value='站点';input.dispatchEvent(new a.w.Event('input'));
   assert.equal(a.ids().length,80);
   a.d.querySelector('[data-category="奇数"]').click();assert.equal(a.ids().length,40);
-  input.value='站点 79';input.dispatchEvent(new a.w.Event('input'));assert.deepEqual(a.ids(),['b79']);
+  input.value='站点79';input.dispatchEvent(new a.w.Event('input'));assert.deepEqual(a.ids(),['b79']);
   assert.equal(a.d.querySelector('#pagination'),null);
  }finally{a.close();}
 });

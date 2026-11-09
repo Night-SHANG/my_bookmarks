@@ -10,6 +10,8 @@ const FAVICON_CACHE_KEY = 'favicon_cache_v1';
 const THEME_KEY = 'nav_theme';
 const COLUMNS_KEY = 'nav_columns';
 const DENSITY_KEY = 'nav_density';
+const pendingFaviconFallbacks = new Set();
+let faviconFallbackTimer = null;
 const ACCENT_KEY = 'nav_accent';
 
 // ========== 默认数据 ==========
@@ -58,6 +60,35 @@ let importReadVersion = 0;
 let activeImportReader = null;
 
 // ========== 工具函数 ==========
+
+function scheduleFaviconFallback(favicon) {
+    pendingFaviconFallbacks.add(favicon);
+    if (faviconFallbackTimer !== null) return;
+    // One shared timeout serves every pending icon; avoids thousands of timers.
+    faviconFallbackTimer = setTimeout(() => {
+        for (const node of pendingFaviconFallbacks) {
+            if (node.querySelector('.fa-spinner')) node.innerHTML = '<i class="fas fa-globe" aria-label="网站图标暂不可用"></i>';
+        }
+        pendingFaviconFallbacks.clear();
+        faviconFallbackTimer = null;
+    }, 8000);
+}
+
+function clearFaviconFallback(favicon) {
+    pendingFaviconFallbacks.delete(favicon);
+    if (pendingFaviconFallbacks.size === 0 && faviconFallbackTimer !== null) {
+        clearTimeout(faviconFallbackTimer);
+        faviconFallbackTimer = null;
+    }
+}
+
+function clearAllFaviconFallbacks() {
+    pendingFaviconFallbacks.clear();
+    if (faviconFallbackTimer !== null) {
+        clearTimeout(faviconFallbackTimer);
+        faviconFallbackTimer = null;
+    }
+}
 
 function genId() {
     return 'b_' + Math.random().toString(36).slice(2, 9);
@@ -577,6 +608,7 @@ function renderBookmarks() {
     const focusedId = focusedCard?.dataset.id;
     const focusedLink = document.activeElement?.classList.contains('bookmark-link');
     closeCardActions(false);
+    clearAllFaviconFallbacks();
     bookmarksGrid.innerHTML = '';
     bookmarksGrid.style.display = 'grid';
 
@@ -633,7 +665,9 @@ function renderBookmarks() {
         const candidates = (b.icon && b.icon.trim()) ? [b.icon.trim()] : faviconUrlsFor(b.url);
         img.src = candidates[0];
         let idx = 0;
+        scheduleFaviconFallback(fav);
         img.onload = function () {
+            clearFaviconFallback(fav);
             fav.innerHTML = '';
             fav.appendChild(img);
             img.style.display = 'block';
@@ -648,7 +682,10 @@ function renderBookmarks() {
         img.onerror = function () {
             idx++;
             if (idx < candidates.length) img.src = candidates[idx];
-            else fav.innerHTML = '<i class="fas fa-globe" aria-label="网站图标暂不可用"></i>';
+            else {
+                clearFaviconFallback(fav);
+                fav.innerHTML = '<i class="fas fa-globe" aria-label="网站图标暂不可用"></i>';
+            }
         };
 
         // 信息区

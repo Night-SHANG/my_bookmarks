@@ -770,12 +770,10 @@ input, textarea, select { font-family: inherit; }
 
   .category-bar {
     justify-content: flex-start;
-    overflow-x: auto;
-    flex-wrap: nowrap;
+    overflow: visible;
+    flex-wrap: wrap;
     padding-bottom: 4px;
-    scrollbar-width: none;
   }
-  .category-bar::-webkit-scrollbar { display: none; }
 }
 
 /* === 颜色选择器 === */
@@ -935,8 +933,8 @@ button:focus-visible, a:focus-visible {
   justify-content:flex-start;
   margin:0;
   padding:0;
-  overflow-y:auto;
-  flex-wrap:nowrap
+  overflow:visible;
+  flex-wrap:wrap
 }
 .cat-chip {
   display:flex;
@@ -1307,8 +1305,8 @@ button:focus-visible, a:focus-visible {
   }
   .category-bar {
     flex-direction:row;
-    overflow-x:auto;
-    overflow-y:hidden;
+    flex-wrap:wrap;
+    overflow:visible;
     gap:7px;
     padding-bottom:8px
   }
@@ -1451,10 +1449,9 @@ button:focus-visible, a:focus-visible {
   }
 }
 
-/* Keep long category lists scrollable without hiding management actions. */
-.sidebar .category-bar { min-height: 0; flex: 1 1 auto; }
+/* Sidebar category navigation grows naturally; no flex-height compression. */
+.sidebar .category-bar { min-height: 0; flex: 0 0 auto; overflow: visible; }
 .sidebar .brand, .sidebar-footer { flex-shrink: 0; }
-@media (max-width: 700px) { .sidebar .category-bar { flex: 0 0 auto; } }
 
 @media (max-width: 700px) { .header h2 { text-wrap: balance; } }
 

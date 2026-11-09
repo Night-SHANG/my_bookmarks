@@ -7,7 +7,7 @@ const start=source.indexOf('function getColumns()');
 const end=source.indexOf('function brandIconSvg(');
 assert.ok(start>=0&&end>start,'column functions must be defined before brand icon functions');
 function setup(saved=null){
- let stored=saved,writable=true;const vars={},attrs={},controls={colsIncrease:{},colsDecrease:{}},errors=[];
+ let stored=saved,writable=true;const vars={},attrs={},controls={colsIncrease:{addEventListener(){}},colsDecrease:{addEventListener(){}},densityCompactBtn:{addEventListener(){}},densityComfortableBtn:{addEventListener(){}}},errors=[];
  const context=vm.createContext({
   COLUMNS_KEY:'nav_columns',
   colsDisplay:{textContent:'',title:'',setAttribute:(k,v)=>attrs[k]=v},
