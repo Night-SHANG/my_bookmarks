@@ -73,3 +73,14 @@ final result: passed（开发预览；非线上发布）
 - 最终 CI [42603021892](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42603021892)：103项单元测试通过、build通过、Chromium 64/64通过。
 - 新增浏览器回归：相对 favicon 保持导航站点路径；自动 favicon 加载并移除 globe；缓存图标失效清理；自定义图标失败回退；短桌面视口 sticky；长分类超出容量时自然整页滚动。
 - 限制保持：CI 使用 Chromium，Safari/Firefox、实体手机和读屏器尚未专项验证。用户原有书签保存在相同 GitHub Pages origin 的 localStorage，部署不重置收藏；上线前仍建议用户自行导出 JSON 作为数据副本。
+
+
+## 侧栏与 favicon 修复上线验收（2026-11-09，北京时间）
+
+- PR #4 已合并，正式 main：`9e6da20fb739293d677928d97385d66bb0e0dce8`。
+- GitHub Actions：Preflight 103项单测、构建成功；Chromium 64/64通过。push [42603917518](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42603917518)、PR [42603977648](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42603977648)。
+- GitHub Pages 部署 [42604494190](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42604494190) 成功，部署 SHA 与 main 一致。Artifact `13667386664` 已检查，确认部署包内含相对图标解析兼容逻辑和 sticky 侧栏规则。
+- 侧栏：桌面短视口在内容完整容纳时 sticky；分类数量超出容量时取消 sticky，整页自然滚动，无侧栏内滚动或裁切。
+- favicon：已恢复旧收藏相对图标按导航页 `document.baseURI` 解析；书签站点 URL 是第二候选；缓存失效清理并继续站点 favicon；自定义图标失败后继续自动发现。Chromium 覆盖相对路径、自动图标、缓存回退和自定义 URL 回退。
+- 正式站点：<https://night-shang.github.io/my_bookmarks/>。生产备份分支仍固定于旧线上 `927079d`。
+- 线上无法由独立网页读取工具直接打开，验收依据是部署日志、SHA匹配和artifact文件检查；用户浏览器强制刷新后可加载新版本。实体设备和其他浏览器引擎仍未专项验证。

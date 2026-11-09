@@ -117,3 +117,15 @@ CI `42566860067` 的 65 项 Chromium 用例中 62 通过、3 失败。单元测�
 - 侧栏实际设计：在桌面自然高度能完整放入视口时固定于顶部；短桌面间距紧凑；分类超出容量则取消固定，不折叠、不内滚。
 - favicon 最终根因与修复：旧版保存的相对图标地址本应相对导航页 `document.baseURI` 解析，上一轮错误地改为相对 bookmark URL，导致旧图标路径全部失效。现先按导航页路径解析，再尝试 bookmark URL，最后自动发现；坏缓存失效后继续回退。
 - 生产尚未更新，PR 与部署后需再次核对 Pages SHA；生产备份 `backup/production-live-20261109@927079d` 保持不变。
+
+
+## favicon 与侧栏修复已正式部署（2026-11-09，北京时间）
+
+- PR [#4 修复侧栏首屏可达性与书签 favicon 显示](https://github.com/Night-SHANG/my_bookmarks/pull/4) 已合并。
+- 最终正式 main SHA：`9e6da20fb739293d677928d97385d66bb0e0dce8`。
+- CI [42603021892](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42603021892)：103项单元测试、Preflight/build、Chromium 64/64全部通过。PR CI [42603977648](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42603977648) 和 push CI [42603917518](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42603917518) 均成功。
+- GitHub Pages 部署 [42604494190](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42604494190) completed / success，部署 SHA 与 main 一致。部署 artifact `13667386664` 已下载检查：包含最新 app.js / polish.css / favicon / manifest；确认相对图标优先按导航页 document.baseURI 解析，站点 URL 作为第二候选；侧栏 sticky 与单一根滚动容器规则存在；分页控件和分页状态仍已移除。
+- 正式地址：<https://night-shang.github.io/my_bookmarks/>。
+- 生产备份 `backup/production-live-20261109` 保持旧线上 SHA `927079d74af120abc5d6feecdf1a389f9a367e75`，未覆盖。
+- 重要根因：上一轮曾把旧版相对 `b.icon` 的解析基址从导航页面错误改成收藏网站，导致旧收藏中的相对图标全部失效。现已恢复兼容，并在浏览器测试中覆盖相对路径、自动图标、缓存失效和自定义图标回退。
+- 线上域名无法由独立网页读取工具直接打开；已核验 Pages 部署成功日志、main SHA 与实际部署 artifact。用户浏览器可通过 Ctrl+F5 强制刷新加载新 JS/CSS；localStorage 收藏数据不会被本次部署重置。
