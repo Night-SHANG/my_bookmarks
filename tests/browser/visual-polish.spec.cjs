@@ -45,6 +45,8 @@ test('offline UI has local icons including dynamic category and theme glyphs',as
 });
 test('dark selection remains readable and modal keeps focus behavior',async({page})=>{
  await prepare(page,{width:1366,height:768});await page.locator('#themeToggle').click();
+ const transitions=await page.locator('.cat-chip.active').evaluate(el=>getComputedStyle(el).transitionProperty.split(',').map(x=>x.trim()));
+ expect(transitions).not.toContain('background');expect(transitions).not.toContain('color');
  const contrast=await page.locator('.cat-chip.active').evaluate(el=>{const cs=getComputedStyle(el);const lum=value=>{const channels=value.match(/[\d.]+/g).slice(0,3).map(Number).map(x=>{const v=x/255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;});return channels[0]*.2126+channels[1]*.7152+channels[2]*.0722;};const a=lum(cs.color),b=lum(cs.backgroundColor);return(Math.max(a,b)+.05)/(Math.min(a,b)+.05);});
  expect(contrast).toBeGreaterThanOrEqual(4.5);const saved=await page.evaluate(()=>localStorage.getItem('my_nav_v2'));
  await page.locator('#addBtn').click();await expect(page.locator('#siteTitle')).toBeFocused();await page.locator('#siteTitle').fill('未保存的测试');await capture(page,'dark-dialog-offline');

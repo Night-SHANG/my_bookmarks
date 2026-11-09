@@ -70,6 +70,10 @@ test('filtered cross-page move keeps unrelated items and search context',async({
 
 for(const theme of ['light','dark'])test('accent text, selected counts and hover contrast in '+theme,async({page})=>{
  await ready(page);if(theme==='dark')await page.locator('#themeToggle').click();
+ const categoryTransitions=await page.locator('.cat-chip.active').evaluate(el=>getComputedStyle(el).transitionProperty.split(',').map(x=>x.trim()));
+ expect(categoryTransitions).not.toContain('background');expect(categoryTransitions).not.toContain('color');
+ const buttonTransitions=await page.locator('#addBtn').evaluate(el=>getComputedStyle(el).transitionProperty.split(',').map(x=>x.trim()));
+ expect(buttonTransitions).not.toContain('background');
  for(const color of ['#d97706','#808080','#ffffff','#000000','#367454']){
   await page.locator('#appearanceBtn').click();
   // Test the color input event; this does not claim to test the OS color-picker UI.

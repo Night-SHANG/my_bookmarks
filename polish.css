@@ -19,7 +19,7 @@
   --text-muted: #68796f;
   --text-on-accent: #263a32;
   --accent: #73d548;
-  --accent-hover: #55b72a;
+  --accent-hover: #50b225;
   --accent-dim: #eefae9;
   --border-color: #e2e8e1;
   --border-hover: #b6c9ba;
@@ -35,7 +35,7 @@
   --focus-color: #55993f;
 }
 [data-theme="dark"] {
-  --accent: #73d548; --accent-hover: #55b72a; --accent-text: #73d548;
+  --accent: #73d548; --accent-hover: #50b225; --accent-text: #73d548;
   --accent-text: #73d548; --text-on-accent: #000000; --text-on-accent-hover: #000000; --text-on-accent-soft: #ffffff;
   --border-control: #879b8d; --error-text: #ffb4aa; --error-bg: #402622;
   color-scheme: dark;
@@ -96,7 +96,7 @@ button:focus-visible, a:focus-visible {
   padding: 8px 10px;
   gap: 10px;
   color: var(--text-secondary);
-  transition: background var(--duration-fast) ease, color var(--duration-fast) ease;
+  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
 }
 .cat-chip i { width: 18px; font-size: 1rem; opacity: .85; }
 .cat-chip:hover { background: var(--bg-subtle); border-color: transparent; }
@@ -162,7 +162,7 @@ button:focus-visible, a:focus-visible {
 .grid-control .btn-icon { color: var(--text-secondary); }
 .btn { font-weight: 500; transition: background var(--duration-fast) ease, border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease; }
 .btn:active { transform: none; }
-.btn-primary { box-shadow: 0 2px 5px rgba(35,77,51,.12); border-radius: 10px; }
+.btn-primary { box-shadow: 0 2px 5px rgba(35,77,51,.12); border-radius: 10px; transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease, transform var(--duration-fast) ease; }
 .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--text-on-accent-hover); box-shadow: 0 4px 10px rgba(35,77,51,.16); }
 .header .btn-primary { font-size: 0.8666666667rem; }
 .header-theme { flex-shrink: 0; width: 36px; height: 36px; border: 1px solid var(--border-color); background: var(--bg-card); }

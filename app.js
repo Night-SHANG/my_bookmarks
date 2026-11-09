@@ -339,7 +339,7 @@ function focusAccent(color, background) {
 }
 
 function createAccentPalette(color, background) {
-    const hover = adjustBrightness(color, -30);
+    const hover = adjustBrightness(color, -35);
     const soft = mixHex(color, background, 0.12);
     const focus = focusAccent(color, background);
     return {
