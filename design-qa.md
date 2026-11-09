@@ -41,3 +41,15 @@ final result: passed（开发预览；非线上发布）
 限制：当前云端测试环境Font Awesome字体未加载，截图中部分纯图标字形缺失；这是未隐藏的实际状态。本轮证明布局与交互，不能标为所有外部资源完整的全面视觉验收。实体手机软键盘/中文输入法、Safari/Firefox仍未专项验证。
 
 2026-10-14 19:28 北京时间（UTC+08:00）：最终23/23 Chromium套件通过；交付路径preview/index.html额外2/2 file测试通过。截图中的最低4×4、少量/满页/尾页稳定尺寸、小屏降级与自动搜索焦点局部验收通过；外部图标字体与实体设备限制如上保留。
+
+
+## 连续网格与双密度方案验收（2026-11-09，北京时间）
+
+- 代码基线：`32e623aac29b455e454e2442fd6f6654a9500a87`，开发分支 `fix/continuous-grid-density`。
+- GitHub Actions：<https://github.com/Night-SHANG/my_bookmarks/actions/runs/42587730453>。Preflight 103项单测与静态构建通过；Chromium 59/59通过。
+- 截图证据来自 Actions `browser-evidence` artifact（ID `13660440555`）：`polish-desktop-1366-offline.png`、`polish-desktop-1920-offline.png`、`mobile-grid.png`、`polish-mobile-320-appearance-offline.png`、`polish-mobile-390-appearance-offline.png`、`desktop-many-categories.png`、`ui-appearance-1366.png`、`ui-data-1366.png`、`polish-dark-offline.png`、`polish-dark-dialog-offline.png` 等。
+- 桌面固定列数由用户偏好控制，resize不覆盖；24书签在8列、1334×657视口一屏显示；移动390 CSS px两列、320 CSS px极窄布局；手机布局不覆盖桌面列数。
+- 所有收藏连续显示，不分页；分类导航自然高度展开，不建立内部滚动区；长分类底部操作可通过文档滚动访问。
+- 紧凑/舒适密度切换独立持久化。紧凑保留图标、标题和网址，舒适额外显示描述。主题色、深浅主题、搜索、数据面板、添加/编辑弹窗及字段错误状态均通过浏览器回归。
+- 性能证据：10,000条记录均生成卡片与懒加载图片节点，`content-visibility:auto`生效；CI runner初次挂载约60秒，属于压力测试且存在明显成本。5,000条收藏下工具面板30次操作P95约0.8ms，网格子节点变更0次。不可把该压力结果外推为实体设备性能。
+- 限制：此次真实浏览器覆盖为 GitHub Actions 的 Chromium；Safari、Firefox、实体手机触控/软键盘、屏幕阅读器尚未专项验证。自动化通过不等于完成全部 WCAG 2.2 AA 人工审计。
