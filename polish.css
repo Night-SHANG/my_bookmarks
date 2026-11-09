@@ -369,35 +369,11 @@ html, body { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: aut
 @media (max-width: 360px) { .bookmarks-grid { grid-template-columns: minmax(0,1fr); } }
 
 
-/* Wide cards remain horizontal; higher desktop column counts become compact launcher tiles. */
-@media (min-width: 701px) and (max-width: 1450px) {
-  html[data-column-layout="compact"] .bookmark-card > .bookmark-link {
-    flex-direction: column; align-items: center; justify-content: center;
-    padding: 0 28px 0 0; gap: 3px;
-  }
-  html[data-column-layout="compact"] .favicon {
-    flex: 0 0 28px; width: 28px; height: 28px; padding: 3px;
-  }
-  html[data-column-layout="compact"] .meta {
-    width: 100%; flex: 0 1 auto; text-align: center;
-  }
-  html[data-column-layout="compact"] .card-title {
-    width: 100%; text-align: center; font-size: .82rem;
-  }
-  html[data-column-layout="compact"] .card-url { display: none; }
-}
-@media (max-width: 700px) {
-  html[data-column-layout="compact"] .bookmark-card > .bookmark-link {
-    flex-direction: row; align-items: center; justify-content: flex-start;
-    padding: 0 36px 0 0; gap: 8px;
-  }
-  html[data-column-layout="compact"] .favicon {
-    flex: 0 0 32px; width: 32px; height: 32px; padding: 4px;
-  }
-  html[data-column-layout="compact"] .meta { text-align: left; }
-  html[data-column-layout="compact"] .card-title { text-align: left; font-size: .9rem; }
-  html[data-column-layout="compact"] .card-url { display: block; }
-}
+/* Desktop bookmark cards stay horizontal at every column preference. */
+html[data-column-layout="compact"] .bookmark-card > .bookmark-link { flex-direction: row; align-items: center; justify-content: flex-start; padding: 0 36px 0 0; gap: 8px; }
+html[data-column-layout="compact"] .meta { text-align: left; }
+html[data-column-layout="compact"] .card-title { text-align: left; font-size: inherit; }
+html[data-column-layout="compact"] .card-url { display: block; }
 
 /* Higher-specificity sidebar rule prevents flex compression of category navigation. */
 .sidebar .category-bar { flex: 0 0 auto; min-height: 0; overflow: visible; }
