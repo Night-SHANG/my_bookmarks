@@ -63,6 +63,16 @@ test('density defaults to compact and persists the comfortable choice independen
 });
 test('sidebar category list has natural height and no nested scrolling rule',()=>{
  const css=fs.readFileSync('polish.css','utf8')+'\n'+fs.readFileSync('style.css','utf8');
- assert.doesNotMatch(css,/\\.category-bar\\s*\\{[^}]*overflow-y:\\s*auto/s);
- assert.doesNotMatch(css,/\\.category-bar\\s*\\{[^}]*flex:\\s*1 1 0/s);
+ assert.doesNotMatch(css,/\.category-bar\s*\{[^}]*overflow-y:\s*auto/s);
+ assert.doesNotMatch(css,/\.category-bar\s*\{[^}]*flex:\s*1 1 0/s);
+});
+
+test('failed density persistence leaves the active mode unchanged',()=>{
+ const a=setup(2);try{
+  const original=a.w.Storage.prototype.setItem;
+  a.w.Storage.prototype.setItem=function(){throw new a.w.DOMException('blocked','QuotaExceededError');};
+  a.d.querySelector('#densityComfortableBtn').click();
+  assert.equal(a.d.documentElement.getAttribute('data-density'),'compact');
+  a.w.Storage.prototype.setItem=original;
+ }finally{a.close();}
 });

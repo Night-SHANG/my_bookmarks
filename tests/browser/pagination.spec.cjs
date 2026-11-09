@@ -64,18 +64,19 @@ test('search and category filters render all matches without page resets',async(
  await expect(page.locator('#pagination')).toHaveCount(0);
 });
 test('compact and comfortable density toggle persists without changing columns or bookmarks',async({page})=>{
- await ready(page,{count:24,columns:8,density:'compact'});
+ await ready(page,{count:24,columns:4,density:'compact'});
  await expect(page.locator('#densityCompactBtn')).toHaveAttribute('aria-pressed','true');
- await expect(page.locator('.bookmark-card').first().locator('.card-url')).toBeHidden();
+ await expect(page.locator('.bookmark-card').first().locator('.card-url')).toBeVisible();
+ await expect(page.locator('.bookmark-card').first().locator('.card-desc')).toBeHidden();
  const before=await page.locator('.bookmark-card').first().boundingBox();
  await page.locator('#appearanceBtn').click();await page.locator('#densityComfortableBtn').click();
  await expect(page.locator('#densityComfortableBtn')).toHaveAttribute('aria-pressed','true');
- await expect(page.locator('.bookmark-card').first().locator('.card-url')).toBeVisible();
+ await expect(page.locator('.bookmark-card').first().locator('.card-desc')).toBeVisible();
  const after=await page.locator('.bookmark-card').first().boundingBox();
  expect(after.height).toBeGreaterThan(before.height);
  expect(await page.evaluate(()=>localStorage.getItem('nav_density'))).toBe('comfortable');
  await expect(page.locator('.bookmark-card')).toHaveCount(24);
- await expect(page.locator('#colsDisplay')).toHaveText('8列');
+ await expect(page.locator('#colsDisplay')).toHaveText('4列');
  await page.reload();
  await expect(page.locator('#densityComfortableBtn')).toHaveAttribute('aria-pressed','true');
  await expect(page.locator('.bookmark-card')).toHaveCount(24);

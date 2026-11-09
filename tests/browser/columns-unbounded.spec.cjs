@@ -36,7 +36,7 @@ test('large libraries render every record in continuous flow with lazy favicon r
   const grid=document.getElementById('bookmarksGrid');
   return {records:window.myNav.bookmarks.length,cards:grid.querySelectorAll('.bookmark-card').length,
    lazyImages:[...grid.querySelectorAll('img')].filter(img=>img.loading==='lazy').length,
-   contentVisibility:getComputedStyle(grid.querySelector('.bookmark-card')).contentVisibility,
+   contentVisibility:getComputedStyle(grid.querySelector('.bookmark-link')).contentVisibility,
    documentHeight:document.documentElement.scrollHeight,viewport:innerHeight};
  });
  expect(metrics.records).toBe(10000);expect(metrics.cards).toBe(10000);expect(metrics.lazyImages).toBe(10000);

@@ -27,7 +27,7 @@ for(const file of [false,true])test(`legacy list preference becomes grid without
  await expect(page.locator('#pagination')).toHaveCount(0);
  await page.locator('#appearanceBtn').click();await page.locator('#densityComfortableBtn').click();
  await expect(page.locator('#densityComfortableBtn')).toHaveAttribute('aria-pressed','true');
- await expect(page.locator('.bookmark-card').first().locator('.card-url')).toBeVisible();
+ await expect(page.locator('.bookmark-card').first().locator('.card-desc')).toBeVisible();
  await page.reload();await expect(page.locator('#bookmarksGrid')).not.toHaveClass(/list-view/);
  expect(await stored(page)).toEqual(entries);await capture(page,file?'file':'desktop');
 });

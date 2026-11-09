@@ -11,7 +11,7 @@ function setup(saved=null){
  const context=vm.createContext({
   COLUMNS_KEY:'nav_columns',
   colsDisplay:{textContent:'',title:'',setAttribute:(k,v)=>attrs[k]=v},
-  document:{documentElement:{style:{setProperty:(k,v)=>vars[k]=String(v)}},getElementById:id=>controls[id]},
+  document:{documentElement:{style:{setProperty:(k,v)=>vars[k]=String(v)},dataset:{}},getElementById:id=>controls[id]},
   readSetting:(_key,fallback)=>stored??fallback,
   writeSetting:(_key,value)=>{if(!writable)return false;stored=String(value);return true;},
   showToast:message=>errors.push(message)

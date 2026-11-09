@@ -53,8 +53,9 @@ test('all event-bound IDs still exist once; search and persistence code are reta
   assert.doesNotMatch(app, /Math\.min\(10, saved\)/);
   const baseCss = read('style.css');
   assert.match(baseCss, /--card-height:\s*var\(--size-grid-row\)/);
-  assert.match(read('polish.css'), /--size-grid-row:\s*6\.2666666667rem/);
-  assert.match(baseCss, /grid-template-rows:\s*repeat\(var\(--rows, 4\), var\(--card-height\)\)/);
+  assert.match(read('polish.css'), /--size-grid-row:\s*4\.8rem/);
+  assert.match(baseCss, /grid-template-rows:\s*none/);
+  assert.match(baseCss, /grid-auto-rows:\s*var\(--card-height\)/);
 });
 test('distributed SVG subset keeps attribution and does not add fonts', () => {
   const license = read('THIRD_PARTY_NOTICES.md');

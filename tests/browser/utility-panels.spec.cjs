@@ -48,7 +48,7 @@ test('grid keeps legal links, compact geometry and editing in one continuous col
  await setup(page);const first=page.locator('.bookmark-card').first();
  await expect(first.locator('.bookmark-link')).toHaveAttribute('href',sampleBookmarks[0].url);
  await expect(first.locator('.bookmark-link button')).toHaveCount(0);
- await expect(first.locator('.card-title')).toBeVisible();await expect(first.locator('.card-url')).toBeHidden();
+ await expect(first.locator('.card-title')).toBeVisible();await expect(first.locator('.card-url')).toBeVisible();await expect(first.locator('.card-desc')).toBeHidden();
  expect((await first.boundingBox()).height).toBe(72);
  await expect(page.locator('.bookmark-card')).toHaveCount(sampleBookmarks.length);
  await expect(page.locator('#pagination')).toHaveCount(0);
