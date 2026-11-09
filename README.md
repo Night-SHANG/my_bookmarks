@@ -1,2 +1,33 @@
-# my_bookmarks
-我的导航主页
+# 我的导航
+
+原生 HTML / CSS / JavaScript 个人书签页，收藏保存在当前浏览器。
+
+## 使用
+
+预览包完整解压后打开 `preview/index.html`，保留同目录全部资源。仓库下载包则打开根目录 `index.html`。无需后端；正式部署由 main 分支的 GitHub Pages 工作流触发。
+
+仅保留卡片网格，支持搜索、分类、增删改、拖动及上移下移、分类排序与分页。列数没有固定上限，默认/最低保存偏好为4列；窄屏按实际空间适配，不覆盖原偏好。旧版列表设置忽略，不改写收藏。
+
+默认鲜叶绿 `#73D548` 取自用户提供的按钮截图，另提供薄荷绿、湖水青、晴空蓝、矢车菊蓝、鸢尾紫、樱花粉、蜜杏橙、柠檬黄。更换主题色会同步更新侧栏书签罗盘 Logo、浏览器标签页 SVG favicon 和支持动态更新的浏览器工具栏颜色；Apple Touch / Android 安装图标是静态资源，不随网页运行时颜色变化。保留自定义颜色和“恢复默认”；已有自定义色不强制替换。亮色背景使用可读深色文字，悬停与淡色选中状态独立计算前景。搜索框保留圆角主题色焦点，不使用黑色方框。
+
+## 数据与备份
+
+仅保留 JSON 导入、导出。导入先整批校验并确认覆盖；取消、读取/解析/写入失败时保留原收藏，不创建自动快照。没有演示或恢复备份入口。
+
+更新前导出 JSON 并保留旧页面；不同路径、域名、端口和浏览器可能使用独立存储。代码备份分支 `backup/ui-polish-before-sync-20261109` 指向更新前的 `bd70f66`，它不包含用户浏览器内的书签，也不替代 JSON 备份。
+
+## 开发与验收
+
+先读 `HANDOFF.md`、`AGENTS.md`、`UI_DESIGN_STANDARD.md`。Node.js 24，使用已锁定依赖：
+
+```sh
+npm ci
+npm test
+npm run build
+npx playwright install --with-deps chromium
+npm run test:browser
+```
+
+本轮73项无依赖定向检查通过；原JSDOM与完整Playwright套件交由既有CI运行，本地未执行，不宣称全面验收或WCAG合规。新增/原有测试没有因退役列表而删掉整套覆盖，列表用例改为旧存储兼容与网格等效路径。CI保持Ubuntu 24.04和固定依赖。
+
+`dist/manifest.json` 记录全部运行/许可文件的SHA256，包含 SVG favicon、多分辨率 ICO/PNG、Apple Touch 与 Android 图标。第三方UI图标为本地SVG CSS mask，保留 `THIRD_PARTY_NOTICES.md`；不分发字体文件。外站favicon可能依赖网络，有本地回退。不改变原仓库整体许可。
