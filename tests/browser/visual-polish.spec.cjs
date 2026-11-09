@@ -26,11 +26,12 @@ async function hasGlyph(locator){expect(await locator.evaluate(el=>getComputedSt
 for(const viewport of [{width:1366,height:768},{width:1920,height:1080}]){
  test('polish keeps fixed desktop slots at '+viewport.width,async({page})=>{
   await prepare(page,viewport);await expect(page.locator('#searchInput')).toBeFocused();await expect(page.locator('#colsDisplay')).toHaveText('4列');
-  const grid=page.locator('#bookmarksGrid');expect(Number(await grid.getAttribute('data-page-size'))).toBeGreaterThanOrEqual(16);
-  const before=await page.locator('.bookmark-card').first().boundingBox();expect(before.height).toBe(94);
+  const grid=page.locator('#bookmarksGrid');await expect(grid.locator('.bookmark-card')).toHaveCount(36);
+  await expect(page.locator('#pagination')).toHaveCount(0);
+  const before=await page.locator('.bookmark-card').first().boundingBox();expect(before.height).toBe(72);
   await page.locator('#searchInput').fill('常用网站与开发资料');await expect(page.locator('.bookmark-card')).toHaveCount(1);
   const after=await page.locator('.bookmark-card').first().boundingBox();expect(after.width).toBeCloseTo(before.width,1);expect(after.height).toBe(before.height);
-  await page.locator('#searchInput').fill('');await noOverflow(page);expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1)).toBe(true);
+  await page.locator('#searchInput').fill('');await noOverflow(page);expect(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight)).toBe(true);
   await capture(page,'desktop-'+viewport.width+'-offline');
  });
 }

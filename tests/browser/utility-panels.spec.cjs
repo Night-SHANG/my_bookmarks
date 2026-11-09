@@ -11,7 +11,7 @@ async function setup(page,width=1366,fileMode=false){
  await seedBookmarks(page);await settle(page);
 }
 async function capture(page,name){await settle(page);await expect(page.locator('.favicon .fa-spinner')).toHaveCount(0);fs.mkdirSync('artifacts',{recursive:true});await page.screenshot({path:'artifacts/ui-'+name+'.png',fullPage:true,animations:'disabled'});}
-async function layout(page){return page.evaluate(()=>Object.fromEntries(['.header','.search-section','#categoryBar','#bookmarksGrid','#pagination','#appearanceBtn','#dataPanelBtn'].map(selector=>{const r=document.querySelector(selector).getBoundingClientRect();return[selector,{x:r.x,y:r.y,width:r.width,height:r.height}];})));}
+async function layout(page){return page.evaluate(()=>Object.fromEntries(['.header','.search-section','#categoryBar','#bookmarksGrid','#appearanceBtn','#dataPanelBtn'].map(selector=>{const r=document.querySelector(selector).getBoundingClientRect();return[selector,{x:r.x,y:r.y,width:r.width,height:r.height}];})));}
 function unchanged(before,after){for(const selector of Object.keys(before))for(const key of ['x','y','width','height'])expect(Math.abs(before[selector][key]-after[selector][key]),selector+' '+key).toBeLessThan(.75);}
 for(const width of [1366,390,320]){
  test('utility panels never move existing controls at '+width,async({page})=>{
@@ -44,15 +44,15 @@ for(const mode of ['light','dark']){
   await expect(page.locator('html')).toHaveAttribute('data-theme',mode);await expect(page.locator('#bookmarksGrid')).not.toHaveClass(/list-view/);await capture(page,'grid-'+mode);
  });
 }
-test('grid keeps legal links, compact geometry, editing and complete pagination',async({page})=>{
+test('grid keeps legal links, compact geometry and editing in one continuous collection',async({page})=>{
  await setup(page);const first=page.locator('.bookmark-card').first();
  await expect(first.locator('.bookmark-link')).toHaveAttribute('href',sampleBookmarks[0].url);
  await expect(first.locator('.bookmark-link button')).toHaveCount(0);
- await expect(first.locator('.card-title')).toBeVisible();await expect(first.locator('.card-url')).toBeVisible();
- expect((await first.boundingBox()).height).toBe(94);
+ await expect(first.locator('.card-title')).toBeVisible();await expect(first.locator('.card-url')).toBeHidden();
+ expect((await first.boundingBox()).height).toBe(72);
+ await expect(page.locator('.bookmark-card')).toHaveCount(sampleBookmarks.length);
+ await expect(page.locator('#pagination')).toHaveCount(0);
  await first.locator('[aria-expanded]').click();await first.locator('.edit-btn').click();await expect(page.locator('#siteTitle')).toBeFocused();await page.locator('#modalCancelBtn').click();await expect(first.locator('[aria-expanded]')).toBeFocused();
- const seen=[];for(;;){seen.push(...await page.locator('.bookmark-card').evaluateAll(items=>items.map(item=>item.dataset.id)));if(await page.locator('#nextPage').isDisabled())break;await page.locator('#nextPage').click();}
- expect(seen).toEqual(sampleBookmarks.map(item=>item.id));expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1)).toBe(true);
 });
 test('mobile grid keeps primary text and actions readable without horizontal overflow',async({page})=>{
  await setup(page,390);
@@ -73,6 +73,6 @@ test('large libraries do not rerender the grid when utility panels toggle',async
   for(let i=0;i<30;i++){const start=performance.now();document.getElementById('appearanceBtn').click();document.getElementById('dataPanelBtn').click();document.getElementById('dataPanelBtn').click();samples.push(performance.now()-start);}
   const mutations=observer.takeRecords().length;observer.disconnect();return{samplesMs:samples,gridChildMutations:mutations,renderedCards:grid.querySelectorAll('.bookmark-card').length,records:window.myNav.bookmarks.length,userAgent:navigator.userAgent};
  });
- expect(metrics.records).toBe(5000);expect(metrics.renderedCards).toBeLessThan(100);expect(metrics.gridChildMutations).toBe(0);const sorted=[...metrics.samplesMs].sort((a,b)=>a-b);expect(sorted[Math.floor(sorted.length*.95)]).toBeLessThan(200);
+ expect(metrics.records).toBe(5000);expect(metrics.renderedCards).toBe(5000);expect(metrics.gridChildMutations).toBe(0);const sorted=[...metrics.samplesMs].sort((a,b)=>a-b);expect(sorted[Math.floor(sorted.length*.95)]).toBeLessThan(200);
  fs.mkdirSync('artifacts',{recursive:true});fs.writeFileSync('artifacts/ui-panel-performance.json',JSON.stringify(metrics,null,2));
 });

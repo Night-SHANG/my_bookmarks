@@ -19,12 +19,15 @@ test('only the bookmark grid remains; no hidden list toggle or list state machin
  assert.doesNotMatch(source,/applyView|nav_view|list-view/);
  assert.doesNotMatch(css,/list-view|view-switch|--size-list-row/);
 });
-test('retired list metadata is not generated and column preference remains unbounded',()=>{
- assert.doesNotMatch(source,/className = 'card-category'|has-description/);
- assert.doesNotMatch(functions(['getColumns','setColumns','applyEffectiveColumns']),/Math\.min\(10|>=\s*10/);
- const c=vm.createContext({bookmarksGrid:{classList:{contains:()=>true}},getComputedStyle:()=>({fontSize:'15px'})});
- vm.runInContext(functions(['cardHeightPixels']),c);
- assert.equal(c.cardHeightPixels({getPropertyValue:()=>'',gridAutoRows:'auto'}),94);
+test('retired pagination state is removed; columns and density are independent preferences',()=>{
+ assert.doesNotMatch(source,/currentPage|totalPages|pageSize|measurePageSize|renderPagination|ResizeObserver/);
+ assert.doesNotMatch(html,/id="pagination"|id="nextPage"|id="prevPage"/);
+ assert.doesNotMatch(functions(['getColumns','setColumns','applyColumnPreference']),/innerWidth|clientWidth|getComputedStyle/);
+ assert.match(source,/const DENSITY_KEY = 'nav_density'/);
+ assert.match(source,/function getDensity\(\)/);
+ assert.match(source,/function setDensity\(/);
+ assert.match(html,/id="densityCompactBtn"/);assert.match(html,/id="densityComfortableBtn"/);
+ assert.match(css,/data-density="comfortable"/);
 });
 test('nine fresh presets follow the bright reference palette',()=>{
  assert.equal(presets.length,9);assert.equal(new Set(presets).size,9);
