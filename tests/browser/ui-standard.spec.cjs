@@ -140,3 +140,16 @@ test('accent changes recolor the brand mark, browser tab favicon and browser chr
  href=await page.locator('#dynamicFavicon').getAttribute('href');
  expect(decodeURIComponent(href.slice(href.indexOf(',')+1))).toContain('fill="#73d548"');
 });
+
+test('Android install icons are referenced by the web app manifest and served locally',async({page})=>{
+ await ready(page);
+ const response=await page.request.get(new URL('site.webmanifest',page.url()).toString());
+ expect(response.ok()).toBeTruthy();
+ const manifest=await response.json();
+ expect(manifest.icons.map(x=>x.src).sort()).toEqual(['android-chrome-192x192.png','android-chrome-512x512.png']);
+ for(const icon of manifest.icons){
+  const asset=await page.request.get(new URL(icon.src,page.url()).toString());
+  expect(asset.ok(),icon.src).toBeTruthy();
+  expect(asset.headers()['content-type']).toContain('image/png');
+ }
+});
