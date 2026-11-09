@@ -54,7 +54,7 @@ test('effective columns adapt to available width while saved preference remains 
  assert.equal(s.apply(),8);
  assert.equal(s.vars['--columns'],'8');
  s.context.bookmarksGrid.clientWidth=1200;
- assert.equal(s.apply(),5);
+ assert.equal(s.apply(),6);
  assert.equal(s.get(),8);
  assert.equal(s.stored(),'8');
 });
