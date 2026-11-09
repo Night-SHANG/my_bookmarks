@@ -60,3 +60,60 @@ CI `42566860067` 的 65 项 Chromium 用例中 62 通过、3 失败。单元测�
 - 正式地址：<https://night-shang.github.io/my_bookmarks/>。
 - 生产备份分支 `backup/production-live-20261109` 仍为旧线上快照 `927079d74af120abc5d6feecdf1a389f9a367e75`，没有被覆盖。
 - 独立网页读取工具无法直接打开 Pages 域名；本次上线验证依据是 Pages 部署成功状态、部署 SHA、上传 artifact 和 artifact 内实际文件检查。不能据此声称已完成真实用户浏览器/实体设备巡检。
+
+
+## 用户截图复现：侧栏首屏可达性与 favicon 全部回退（2026-11-09）
+
+- 用户提供的 1383×806 与 1357×802 浏览器截图显示：页面在顶部时侧栏底部管理入口落在视口外；向下滚动后品牌区离开视口。根因是连续网格改为文档滚动后，侧栏被设为 `position: static`，而用户期望常用分类和管理入口在短桌面视口中同时可见。
+- 侧栏修复策略：在桌面端仅当侧栏自然内容高度不超过视口时启用 sticky；短视口通过紧凑但不裁切的行高/间距适配 10 个分类与3个管理操作。分类数量超出视口容量时取消 sticky，让整个文档自然滚动；不引入侧栏内滚动或折叠。
+- favicon 根因：`loading=lazy` 图片被设为 `display:none`，浏览器不会为不可渲染的图片建立正常布局/加载请求；唯一的 `onload` 才会移除 globe 并显示图片，形成“隐藏图片等待加载、加载后才显示”的死锁。修复为图片从一开始就有可布局的盒子，初始透明，加载成功后移除占位并淡入。
+- 图标候选修复：有效缓存不再独占唯一候选；缓存失效后清理该域名的坏缓存并继续尝试站点 favicon、常见静态图标路径及 DuckDuckGo 回退。用户明确填写的自定义图标仍优先，但失败后会继续尝试站点自动图标。
+- 新增 Chromium 回归：短桌面视口 10 分类时侧栏首屏全部可见并在页面滚动时保持；35 分类时侧栏取消 sticky 且可通过文档滚动访问底部；自动 favicon、缓存失效和自定义图标失败回退均需验证。
+
+
+## 连续网格截图修复第一轮 CI 发现（2026-11-09）
+
+- CI `42595488008`：单元测试和 build 通过，Chromium 59通过、4失败。失败暴露三处测试/布局问题，未删除或放宽验收。
+- favicon 浏览器测试中的 SVG body 被按 `.ico` 路径提供，Chromium runner将其判为解码失败；测试改用真实 PNG 字节并返回 `image/png`。10,000条压力 fixture 原先使用相对 `favicon.svg`，被错误解析为目标网站的相对地址；改用明确的目标域名 PNG favicon 路径，并在测试路由提供成功图片，确保性能测试测量真实懒加载节点而不是大量模拟网络失败。
+- 明确图标地址解析规则：用户保存的相对图标路径应相对于书签 URL 解析，而不是相对于导航站自身的 `<base>`。自定义图标成功时不必预先生成整套回退候选；只有失败后才计算站点 favicon 候选，避免10,000条记录无必要地生成十万级 URL 字符串。
+- sticky 失败根因：`html` 和 `body` 同时设为独立 `overflow-y:auto`，产生嵌套滚动容器，sticky 侧栏并未跟随实际根滚动视口。现改为 html 作为唯一根滚动容器、body overflow visible。
+
+
+## favicon 测试路由修正（2026-11-09）
+
+- CI `42596724573`：60通过、3失败；侧栏短视口固定/自然滚动测试已通过，说明根滚动容器修复有效。
+- 剩余 favicon 失败不是产品加载逻辑：Playwright 的 `route.fulfill({body: Buffer, contentType})` fixture 未被 Chromium 按有效图像解码，浏览器继续 fallback，最后移除图片节点。性能测试因此统计到0个成功/未失败的 lazy image。
+- 将测试响应改为直接使用仓库内真实 `favicon-32x32.png` 文件：`route.fulfill({path: iconFile})`，由 Playwright 按真实 PNG 文件类型提供响应；这避免了测试自己构造/编码图片响应的问题。产品端仍保留透明加载、成功淡入和失败回退逻辑。
+
+
+## favicon 根因最终确认与兼容修复（2026-11-09）
+
+- CI `42598721756`：10,000书签压力用例与两项侧栏测试通过；剩余2项失败集中在 favicon 自动测试/缓存回退 fixture。
+- 复核历史实现发现：原版对用户保存的相对 `b.icon` 直接赋值给 `img.src`，因此浏览器按导航页的 `document.baseURI` 解析。上一轮改成 `new URL(icon, b.url)` 改变了既有语义：相对图标路径会被错误解析到被收藏的网站域名。这会使已有相对路径图标全部失效，正好符合用户截图中所有站点图标都变成地球占位的现象。
+- 最终修复：相对图标先按导航页 `document.baseURI` 解析以保持旧数据兼容，再按书签 URL 解析作为第二候选；只有这两种保存路径都失败后才尝试网站 favicon 候选。绝对 URL、data URL 保持原意，重复候选去重。
+- favicon 浏览器 fixture 改为对常规外站图标请求提供仓库内真实 PNG 文件，对 `broken.example` 明确返回404，以分别验证成功显示、坏缓存清理、用户自定义图标失败后的域名回退。新增本地相对路径回归，确认旧版相对图标仍从导航站点根路径加载。
+- 侧栏 sticky 与短视口压缩测试已通过；35分类时自动取消 sticky，保留整页自然滚动，无内层滚动条。
+
+
+## 浏览器图标 fixture 校正（2026-11-09）
+
+- CI `42601708221`：单测和 build 通过；Chromium 61通过、3失败。短视口 sticky 与35分类整页滚动两项继续通过；favicon 相关失败都发生在图像 fixture 未产生 `naturalWidth`，不再是布局问题。
+- 仓库内 PNG favicon fixture 在 Chromium route.fulfill 测试路径中没有解码为有效图像；将浏览器图标 fixture 改为仓库内已被浏览器标签页测试覆盖的有效 `favicon.svg`，同样从本地文件响应，避免测试自制二进制数据。生产图标资源不变。
+- 相对图标回归使用真实 `favicon.svg` 相对路径，验证从导航页 `document.baseURI` 解析，并保留书签 URL 作为第二候选。
+
+
+## favicon fixture MIME 与候选顺序验收修正（2026-11-09）
+
+- CI `42602308820`：单测/build通过，Chromium 61通过、3失败。trace 显示相对路径 `http://127.0.0.1:4173/favicon.svg` 被仓库测试静态服务器以 `application/octet-stream` 返回；这不是 GitHub Pages 的生产 MIME。浏览器因此继续第二候选 `https://bookmark.example/favicon.svg`，证明代码的双基址回退正在工作，但测试服务的本地 MIME 配置错误。
+- 同一 trace 显示自动 favicon 路径 `.ico` 在 SVG fixture 响应下被 Chromium 拒绝，随后 `.png` SVG fixture 成功加载。测试不应强制断言首个候选一定成功；改为断言实际站点来源 favicon 候选成功、图片 naturalWidth 大于0。缓存与自定义图标回退也检查实际域名和 favicon 路径，不硬编码扩展名。
+- 修正测试路由：仅对本地 `/favicon.svg` 使用 `route.fulfill({path})` 提供正确 MIME，其余本地资源正常继续；外站普通 favicon 用同一已验证 SVG 响应，坏图标域名仍明确返回404。
+
+
+## 用户截图回归最终通过（2026-11-09）
+
+- 最终开发提交：`4eba36aab73a4a1af7b6ac3d203d9604045db50e`。
+- CI [42603021892](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42603021892) success：103项单元测试通过，Preflight/build通过，Chromium 64/64通过。
+- 新增4项 favicon/侧栏浏览器回归：导航页相对图标路径兼容；自动 favicon 图片成功显示；失效缓存与自定义图标 URL 回退到站点图标；短视口侧栏完整 sticky；分类过多时取消 sticky 并使用文档滚动。
+- 侧栏实际设计：在桌面自然高度能完整放入视口时固定于顶部；短桌面间距紧凑；分类超出容量则取消固定，不折叠、不内滚。
+- favicon 最终根因与修复：旧版保存的相对图标地址本应相对导航页 `document.baseURI` 解析，上一轮错误地改为相对 bookmark URL，导致旧图标路径全部失效。现先按导航页路径解析，再尝试 bookmark URL，最后自动发现；坏缓存失效后继续回退。
+- 生产尚未更新，PR 与部署后需再次核对 Pages SHA；生产备份 `backup/production-live-20261109@927079d` 保持不变。

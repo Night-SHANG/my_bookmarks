@@ -401,3 +401,32 @@ html, body { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: aut
 
 /* Higher-specificity sidebar rule prevents flex compression of category navigation. */
 .sidebar .category-bar { flex: 0 0 auto; min-height: 0; overflow: visible; }
+
+
+/* Desktop sidebar stays in view only when its complete natural content fits. */
+.sidebar.sidebar-pinned {
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+/* Keep one root document scrollport; nested body scrolling breaks sticky navigation. */
+html { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; }
+body { height: auto; min-height: 100%; overflow: visible; }
+@media (min-width: 701px) and (max-height: 760px) {
+  .sidebar {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    gap: 12px;
+  }
+  .brand { gap: 9px; }
+  .brand-mark { flex-basis: 32px; width: 32px; height: 32px; }
+  .brand h1 { font-size: 1.1rem; }
+  .category-bar { gap: 3px; }
+  .cat-chip { min-height: 34px; padding: 5px 8px; gap: 8px; font-size: .82rem; }
+  .cat-chip i { width: 16px; font-size: .9rem; }
+  .cat-chip .cat-count { min-width: 22px; line-height: 1.15rem; padding: 0 5px; }
+  .sidebar-footer { padding-top: 6px; }
+  .sidebar-action { min-height: 32px; padding: 5px 8px; gap: 8px; font-size: .8rem; }
+  .sidebar-action i { width: 16px; font-size: .9rem; }
+}
+.favicon img { transition: opacity var(--duration-fast) ease; }

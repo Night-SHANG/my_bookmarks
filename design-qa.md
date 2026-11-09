@@ -63,3 +63,13 @@ final result: passed（开发预览；非线上发布）
 - 正式站点：<https://night-shang.github.io/my_bookmarks/>。
 - 旧生产备份 `backup/production-live-20261109` 保持 `927079d` 不变。
 - Web 读取工具无法直接加载 Pages 域名；线上核验限于 GitHub Pages 部署成功日志和部署 artifact 文件检查，实体浏览器与其他浏览器引擎仍未专项验证。
+
+
+## 用户截图问题修复与复验（2026-11-09，北京时间）
+
+- 用户实测截图复现两项回归：短桌面视口下侧栏管理入口不在首屏；全部书签图标显示 globe 占位。
+- 侧栏修复：页面使用单一根文档滚动容器；桌面端仅在侧栏自然内容能完整容纳时启用 sticky；短视口紧凑间距，超过容量则取消 sticky、继续整页滚动。无侧栏内部滚动、裁切或折叠。
+- favicon 根因：相对图标路径被错误地以 bookmark URL 为 base 解析，破坏旧版按导航页面 base URI 解析的保存数据。现恢复导航页 base URI 优先，并将书签 URL 作为第二候选；两者失败才尝试自动 favicon。缓存失败会清理坏缓存并继续候选。
+- 最终 CI [42603021892](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42603021892)：103项单元测试通过、build通过、Chromium 64/64通过。
+- 新增浏览器回归：相对 favicon 保持导航站点路径；自动 favicon 加载并移除 globe；缓存图标失效清理；自定义图标失败回退；短桌面视口 sticky；长分类超出容量时自然整页滚动。
+- 限制保持：CI 使用 Chromium，Safari/Firefox、实体手机和读屏器尚未专项验证。用户原有书签保存在相同 GitHub Pages origin 的 localStorage，部署不重置收藏；上线前仍建议用户自行导出 JSON 作为数据副本。

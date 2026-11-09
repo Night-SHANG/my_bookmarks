@@ -47,4 +47,4 @@ npm run test:browser
 
 10,000条书签压力用例验证了10,000个卡片与懒加载图片节点、文档连续高度和 `content-visibility:auto`。GitHub Ubuntu Chromium runner 上初次挂载约1分钟；这是压力测试记录，不代表一般收藏量的加载时间，也不作为所有设备的性能保证。5,000条数据下切换工具面板的30次样本P95约0.8ms，未触发书签网格子节点变化。详见 `HANDOFF.md` 和 `design-qa.md`。
 
-`dist/manifest.json` 记录运行与许可文件的SHA256，包含 SVG favicon、多分辨率 ICO/PNG、Apple Touch 与 Android 图标。第三方UI图标为本地SVG CSS mask，保留 `THIRD_PARTY_NOTICES.md`；不分发字体文件。外站favicon可能依赖网络，加载中显示本地图标占位，失败后保留回退。不改变原仓库整体许可。
+`dist/manifest.json` 记录运行与许可文件的SHA256，包含 SVG favicon、多分辨率 ICO/PNG、Apple Touch 与 Android 图标。第三方UI图标为本地SVG CSS mask，保留 `THIRD_PARTY_NOTICES.md`；不分发字体文件。已保存的相对图标路径优先按导航页自身路径解析，保持旧收藏兼容；若该路径不可用，再尝试按书签网站地址解析，最后继续自动获取网站 favicon。绝对图标地址保持不变。外站favicon可能依赖网络，加载中显示本地图标占位，失败后保留回退。不改变原仓库整体许可。

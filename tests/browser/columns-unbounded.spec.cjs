@@ -1,9 +1,17 @@
 const {test,expect}=require('@playwright/test');
 const fs=require('node:fs');
-const entry=i=>({id:'columns-'+i,title:'站点 '+i,url:'https://example.org/'+i,desc:i%2?'自定义说明':'',category:'测试分类',icon:'favicon.svg'});
+const path=require('node:path');
+const iconFile=path.resolve(__dirname,'../../favicon-32x32.png');
+const performanceIcon='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAM0lEQVR4nO3OQQEAMAjEsGPq5mda0TNk8EkNNPX6/ix2NucAAAAAAAAAAAAAAAAAAABJMlGU';
+const entry=i=>({id:'columns-'+i,title:'站点 '+i,url:'https://example.org/'+i,desc:i%2?'自定义说明':'',category:'测试分类',icon:performanceIcon});
 async function setup(page,columns,width=3840,count=256){
  await page.setViewportSize({width,height:1080});
- await page.route('**/*',route=>{const u=new URL(route.request().url());return ['127.0.0.1','localhost'].includes(u.hostname)?route.continue():route.abort();});
+ await page.route('**/*',route=>{
+  const u=new URL(route.request().url());
+  if(['127.0.0.1','localhost'].includes(u.hostname))return route.continue();
+  if(u.hostname==='example.org'&&u.pathname==='/favicon.ico')return route.fulfill({path:iconFile});
+  return route.abort();
+ });
  await page.goto('/');
  await page.evaluate(({columns,data})=>{localStorage.clear();localStorage.setItem('my_nav_v2',JSON.stringify(data));localStorage.setItem('nav_columns',String(columns));},{columns,data:Array.from({length:count},(_,i)=>entry(i))});
  await page.reload();await expect(page.locator('.bookmark-card').first()).toBeVisible();
