@@ -7,8 +7,8 @@ async function openSeeded(page,{width=1383,height=690,data=entries(30),extras={}
  await page.route('**/*',route=>{
   const url=new URL(route.request().url());
   if(url.hostname==='127.0.0.1'||url.hostname==='localhost'||url.protocol==='file:')return route.continue();
-  if(url.pathname==='/favicon.ico')return route.fulfill({path:iconFile});
-  return route.fulfill({status:404,body:''});
+  if(url.hostname==='broken.example')return route.fulfill({status:404,body:''});
+  return route.fulfill({path:iconFile});
  });
  await page.goto('/');
  await page.evaluate(({data,extras})=>{localStorage.clear();localStorage.setItem('my_nav_v2',JSON.stringify(data));for(const [key,value]of Object.entries(extras))localStorage.setItem(key,value);},{data,extras});
@@ -20,6 +20,15 @@ async function waitForIcon(img){
  await expect.poll(()=>img.evaluate(el=>el.naturalWidth)).toBeGreaterThan(0);
  await expect.poll(()=>img.evaluate(el=>getComputedStyle(el).opacity)).toBe('1');
 }
+test('legacy relative favicon paths still resolve from the navigation origin',async({page})=>{
+ const data=[{id:'relative-icon',title:'本地相对图标',url:'https://bookmark.example/',desc:'',category:'测试',icon:'favicon-32x32.png'}];
+ await openSeeded(page,{data});
+ const img=page.locator('.bookmark-card .favicon img');
+ await expect.poll(()=>img.evaluate(el=>el.naturalWidth)).toBeGreaterThan(0);
+ expect(await img.evaluate(el=>new URL(el.currentSrc).origin)).toBe('http://127.0.0.1:4173');
+ expect(await img.evaluate(el=>new URL(el.currentSrc).pathname)).toBe('/favicon-32x32.png');
+ await expect(page.locator('.favicon .fa-globe')).toHaveCount(0);
+});
 test('all automatic favicons load from the site origin instead of remaining globe placeholders',async({page})=>{
  const data=entries(10,10);
  await openSeeded(page,{data});

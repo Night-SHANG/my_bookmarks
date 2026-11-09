@@ -671,15 +671,22 @@ function renderBookmarks() {
         fav.setAttribute('aria-hidden', 'true');
         img.style.display = 'block';
         img.style.opacity = '0';
-        let customIcon = null;
+        const customCandidates = [];
         if (b.icon && b.icon.trim()) {
-            try { customIcon = new URL(b.icon.trim(), b.url).href; }
-            catch (e) { customIcon = b.icon.trim(); }
+            const savedIcon = b.icon.trim();
+            // Preserve the historical rule: relative icon paths resolve from the
+            // navigation page. Also try the bookmark origin for site-relative paths.
+            for (const base of [document.baseURI, b.url]) {
+                try {
+                    const resolved = new URL(savedIcon, base).href;
+                    if (!customCandidates.includes(resolved)) customCandidates.push(resolved);
+                } catch (e) { /* 忽略无效候选，后续继续回退 */ }
+            }
+            if (customCandidates.length === 0 && /^https?:\/\//i.test(savedIcon)) customCandidates.push(savedIcon);
         }
-        // Most bookmarks already have an explicit icon. Defer the expensive
-        // discovery list until that icon actually fails.
-        const candidates = customIcon ? [customIcon] : faviconUrlsFor(b.url);
-        let fallbackCandidatesLoaded = !customIcon;
+        // Defer domain discovery until all saved custom-icon interpretations fail.
+        const candidates = customCandidates.length ? customCandidates : faviconUrlsFor(b.url);
+        let fallbackCandidatesLoaded = customCandidates.length === 0;
         img.src = candidates[0];
         fav.appendChild(img);
         let idx = 0;
@@ -699,9 +706,10 @@ function renderBookmarks() {
         img.onerror = function () {
             const failedUrl = img.currentSrc || img.src;
             try { clearCachedFavicon(new URL(b.url).hostname, failedUrl); } catch (e) { /* 忽略 */ }
-            if (customIcon && !fallbackCandidatesLoaded) {
+            if (customCandidates.length && !fallbackCandidatesLoaded) {
                 fallbackCandidatesLoaded = true;
-                candidates.push(...faviconUrlsFor(b.url).filter(candidate => candidate !== customIcon));
+                const existing = new Set(candidates);
+                candidates.push(...faviconUrlsFor(b.url).filter(candidate => !existing.has(candidate)));
             }
             idx++;
             if (idx < candidates.length) {
