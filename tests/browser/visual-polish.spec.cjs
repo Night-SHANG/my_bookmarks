@@ -38,7 +38,8 @@ test('offline UI has local icons including dynamic category and theme glyphs',as
  const remoteStyles=[];page.on('request',request=>{if(['stylesheet','font'].includes(request.resourceType())&&/^https:/.test(request.url()))remoteStyles.push(request.url());});
  await prepare(page,{width:1440,height:900});
  await expect(page.locator('.brand-mark')).toBeVisible();
- expect(await page.locator('.brand-mark').evaluate(el=>el.querySelectorAll('[data-brand-fill]').length)).toBeGreaterThanOrEqual(2);
+ expect(await page.locator('.brand-mark').evaluate(el=>el.querySelectorAll('[data-brand-fill]').length)).toBeGreaterThanOrEqual(3);
+ expect(await page.locator('.brand-mark').evaluate(el=>el.querySelectorAll('[data-brand-stroke]').length)).toBe(2);
  for(const selector of ['.search-icon','#colsIncrease i','#addBtn i','#categoryOrderBtn i','[data-category="开发工具"] i','.favicon .fa-globe'])await hasGlyph(page.locator(selector).first());
  await page.locator('#themeToggle').click();await hasGlyph(page.locator('#themeIcon'));await expect(page.locator('html')).toHaveAttribute('data-theme','dark');expect(remoteStyles).toEqual([]);await capture(page,'dark-offline');
 });

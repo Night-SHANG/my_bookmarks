@@ -70,6 +70,8 @@ test('brand compass and favicon fallbacks exist and are included in the static b
   assert.match(html, /id="dynamicFavicon"[^>]+favicon\.svg/);
   assert.match(html, /id="brandMark"[^>]*class="brand-mark"/);
   assert.match(app, /function updateBrandAccentIcon/);
+  assert.match(app, /querySelectorAll\('\[data-brand-stroke\]'\)/);
+  assert.match(html, /data-brand-stroke="true"/);
   assert.match(app, /encodeURIComponent\(brandIconSvg\(safeColor\)\)/);
   assert.match(app, /browserThemeColor\.content = safeColor\.toUpperCase\(\)/);
   const images = {'favicon-16x16.png':16,'favicon-32x32.png':32,'apple-touch-icon.png':180,'android-chrome-192x192.png':192,'android-chrome-512x512.png':512};

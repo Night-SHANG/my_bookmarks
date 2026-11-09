@@ -121,6 +121,7 @@ test('accent changes recolor the brand mark, browser tab favicon and browser chr
  const color='#d97706';
  await page.locator('#customColor').evaluate((el,value)=>{el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));},color);
  await expect(page.locator('#brandMark [data-brand-fill]').first()).toHaveAttribute('fill',color);
+ await expect(page.locator('#brandMark [data-brand-stroke]').first()).toHaveAttribute('stroke',color);
  await expect(page.locator('#browserThemeColor')).toHaveAttribute('content',color.toUpperCase());
  let href=await page.locator('#dynamicFavicon').getAttribute('href');
  expect(href).toContain('data:image/svg+xml');
@@ -131,6 +132,7 @@ test('accent changes recolor the brand mark, browser tab favicon and browser chr
  expect(decodeURIComponent(href.slice(href.indexOf(',')+1))).toContain(`fill="${color}"`);
  await page.reload();
  await expect(page.locator('#brandMark [data-brand-fill]').first()).toHaveAttribute('fill',color);
+ await expect(page.locator('#brandMark [data-brand-stroke]').first()).toHaveAttribute('stroke',color);
  await expect(page.locator('#browserThemeColor')).toHaveAttribute('content',color.toUpperCase());
  await page.locator('#appearanceBtn').click();await page.locator('#resetAccent').click();
  await expect(page.locator('#brandMark [data-brand-fill]').first()).toHaveAttribute('fill','#73d548');

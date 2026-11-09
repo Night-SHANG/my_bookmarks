@@ -250,7 +250,10 @@ function brandIconSvg(color) {
 function updateBrandAccentIcon(color) {
     const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : DEFAULT_ACCENT;
     const brand = document.getElementById('brandMark');
-    if (brand) brand.querySelectorAll('[data-brand-fill]').forEach(node => node.setAttribute('fill', safeColor));
+    if (brand) {
+        brand.querySelectorAll('[data-brand-fill]').forEach(node => node.setAttribute('fill', safeColor));
+        brand.querySelectorAll('[data-brand-stroke]').forEach(node => node.setAttribute('stroke', safeColor));
+    }
     const favicon = document.getElementById('dynamicFavicon');
     if (favicon) favicon.href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(brandIconSvg(safeColor));
     const browserThemeColor = document.getElementById('browserThemeColor');
