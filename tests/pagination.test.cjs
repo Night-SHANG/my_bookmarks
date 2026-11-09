@@ -6,6 +6,7 @@ const entry=i=>({id:'b'+i,title:'站点'+i,url:'https://example.org/'+i,desc:'�
 function setup(count=36,settings={}){
  const dom=new JSDOM(fs.readFileSync('index.html','utf8'),{url:'https://example.test',runScripts:'outside-only',pretendToBeVisual:true});
  const w=dom.window,d=w.document;w.confirm=()=>true;
+ Object.defineProperty(d.querySelector('#bookmarksGrid'),'clientWidth',{configurable:true,value:1800});
  w.localStorage.setItem('my_nav_v2',JSON.stringify(Array.from({length:count},(_,i)=>entry(i))));
  for(const [key,value] of Object.entries(settings))w.localStorage.setItem(key,value);
  w.eval(fs.readFileSync('app.js','utf8'));
