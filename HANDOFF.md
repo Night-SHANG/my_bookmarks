@@ -100,3 +100,10 @@ CI `42566860067` 的 65 项 Chromium 用例中 62 通过、3 失败。单元测�
 - CI `42601708221`：单测和 build 通过；Chromium 61通过、3失败。短视口 sticky 与35分类整页滚动两项继续通过；favicon 相关失败都发生在图像 fixture 未产生 `naturalWidth`，不再是布局问题。
 - 仓库内 PNG favicon fixture 在 Chromium route.fulfill 测试路径中没有解码为有效图像；将浏览器图标 fixture 改为仓库内已被浏览器标签页测试覆盖的有效 `favicon.svg`，同样从本地文件响应，避免测试自制二进制数据。生产图标资源不变。
 - 相对图标回归使用真实 `favicon.svg` 相对路径，验证从导航页 `document.baseURI` 解析，并保留书签 URL 作为第二候选。
+
+
+## favicon fixture MIME 与候选顺序验收修正（2026-11-09）
+
+- CI `42602308820`：单测/build通过，Chromium 61通过、3失败。trace 显示相对路径 `http://127.0.0.1:4173/favicon.svg` 被仓库测试静态服务器以 `application/octet-stream` 返回；这不是 GitHub Pages 的生产 MIME。浏览器因此继续第二候选 `https://bookmark.example/favicon.svg`，证明代码的双基址回退正在工作，但测试服务的本地 MIME 配置错误。
+- 同一 trace 显示自动 favicon 路径 `.ico` 在 SVG fixture 响应下被 Chromium 拒绝，随后 `.png` SVG fixture 成功加载。测试不应强制断言首个候选一定成功；改为断言实际站点来源 favicon 候选成功、图片 naturalWidth 大于0。缓存与自定义图标回退也检查实际域名和 favicon 路径，不硬编码扩展名。
+- 修正测试路由：仅对本地 `/favicon.svg` 使用 `route.fulfill({path})` 提供正确 MIME，其余本地资源正常继续；外站普通 favicon 用同一已验证 SVG 响应，坏图标域名仍明确返回404。

@@ -6,7 +6,10 @@ async function openSeeded(page,{width=1383,height=690,data=entries(30),extras={}
  await page.setViewportSize({width,height});
  await page.route('**/*',route=>{
   const url=new URL(route.request().url());
-  if(url.hostname==='127.0.0.1'||url.hostname==='localhost'||url.protocol==='file:')return route.continue();
+  if(url.hostname==='127.0.0.1'||url.hostname==='localhost'||url.protocol==='file:') {
+   if(url.pathname==='/favicon.svg')return route.fulfill({path:iconFile});
+   return route.continue();
+  }
   if(url.hostname==='broken.example')return route.fulfill({status:404,body:''});
   return route.fulfill({path:iconFile});
  });
@@ -37,7 +40,7 @@ test('all automatic favicons load from the site origin instead of remaining glob
   const img=page.locator('.bookmark-card').nth(i).locator('.favicon img');
   await waitForIcon(img);
   expect(await img.evaluate(el=>getComputedStyle(el).display)).not.toBe('none');
-  expect(await img.evaluate(el=>new URL(el.currentSrc).pathname)).toBe('/favicon.ico');
+  expect(await img.evaluate(el=>new URL(el.currentSrc).pathname)).toMatch(/^\/favicon\.(ico|png|svg)$/);
  }
  await expect(page.locator('.favicon .fa-globe')).toHaveCount(0);
 });
@@ -51,10 +54,10 @@ test('failed cached and user-supplied icon URLs fall back to the bookmark domain
  for(let i=0;i<2;i++){
   const img=page.locator('.bookmark-card').nth(i).locator('.favicon img');
   await waitForIcon(img);
-  expect(await img.evaluate(el=>el.currentSrc)).toContain(i===0?'cached.example/favicon.ico':'custom.example/favicon.ico');
+  expect(await img.evaluate(el=>el.currentSrc)).toContain(i===0?'cached.example/favicon':'custom.example/favicon');
  }
  const updated=JSON.parse(await page.evaluate(()=>localStorage.getItem('favicon_cache_v1')));
- expect(updated['cached.example'].url).toContain('cached.example/favicon.ico');
+ expect(updated['cached.example'].url).toContain('cached.example/favicon');
 });
 test('short desktop viewport keeps the whole sidebar visible and pinned without an inner scroller',async({page})=>{
  const data=entries(30,10);
