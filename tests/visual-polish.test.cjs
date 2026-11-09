@@ -80,10 +80,14 @@ test('brand compass and favicon fallbacks exist and are included in the static b
     assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a',file+' PNG signature');
     assert.equal(bytes.readUInt32BE(16),size,file+' width');
     assert.equal(bytes.readUInt32BE(20),size,file+' height');
+    if (file.startsWith('android-chrome-')) continue;
     assert.ok(html.includes(file),file+' is referenced');
   }
+  const webmanifest=JSON.parse(read('site.webmanifest'));
+  assert.deepEqual(webmanifest.icons.map(x=>x.src).sort(),['android-chrome-192x192.png','android-chrome-512x512.png'].sort());
+  assert.ok(html.includes('rel="manifest" href="site.webmanifest"'));
   const ico=fs.readFileSync('favicon.ico');
   assert.equal(ico.readUInt16LE(0),0);assert.equal(ico.readUInt16LE(2),1);assert.ok(ico.readUInt16LE(4)>=3);
   const build=read('scripts/build.cjs');
-  for(const file of ['favicon.svg','favicon.ico',...Object.keys(images)])assert.ok(build.includes(file),file+' is included');
+  for(const file of ['favicon.svg','favicon.ico','site.webmanifest',...Object.keys(images)])assert.ok(build.includes(file),file+' is included');
 });
