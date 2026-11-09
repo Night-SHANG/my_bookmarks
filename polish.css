@@ -408,138 +408,75 @@ body { height: auto; min-height: 100%; overflow: visible; }
 .favicon img { transition: opacity var(--duration-fast) ease; }
 
 
-/* 书签区使用自然文档流，不创建内部滚动容器，也不裁切内容。 */
+
+/* Main layout: one natural page flow and a responsive horizontal bookmark grid. */
+html, body { min-height: 100%; overflow-x: hidden; }
 .app {
-  height: auto;
-  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  align-items: start;
+  min-height: 100dvh;
+  max-width: none;
+  margin: 0;
   overflow: visible;
+}
+.sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100dvh;
+  min-height: 0;
+  overflow: auto;
 }
 .workspace {
-  min-height: 100vh;
-  overflow: visible;
+  min-width: 0;
+  min-height: 100dvh;
+  padding: 20px 24px 16px;
 }
-.collection {
-  flex: 0 0 auto;
-  min-height: 0;
-}
+.collection { min-height: 0; }
 .bookmarks-grid {
-  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(var(--columns, 4), minmax(0, 1fr));
+  grid-auto-rows: clamp(54px, calc((100dvh - 350px) / 5), 88px);
+  gap: 8px;
   height: auto;
-  min-height: 0;
   max-height: none;
   overflow: visible;
-  overflow-y: visible;
-  overflow-x: visible;
   align-content: start;
 }
-
-
-/* Compact desktop viewport: fit the current 24-bookmark collection without page scrolling. */
-@media (min-width: 701px) and (max-height: 850px) {
-  .workspace {
-    padding: 14px 20px 10px;
-  }
-  .header {
-    margin-bottom: 10px;
-    gap: 10px;
-  }
-  .header h2 {
-    font-size: 1.4rem;
-    line-height: 1.2;
-  }
-  .header-actions {
-    gap: 8px;
-  }
-  .btn-primary {
-    min-height: 38px;
-    padding: 7px 12px;
-    font-size: .9rem;
-  }
-  .grid-control .btn-icon {
-    width: 28px;
-    height: 28px;
-  }
-  .search-section {
-    margin-bottom: 14px;
-  }
-  .search-input {
-    height: 44px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
-  .engine-row {
-    margin-top: 6px;
-    gap: 8px;
-  }
-  .engine-tab {
-    min-height: 28px;
-    padding: 3px 10px;
-  }
-  .collection-heading {
-    margin-bottom: 10px;
-  }
-  .collection-heading h2 {
-    font-size: 1rem;
-  }
-  .collection-heading p {
-    font-size: .72rem;
-    margin-top: 1px;
-  }
-  :root {
-    --card-height: 3.8rem;
-  }
-  .bookmarks-grid {
-    gap: 8px;
-  }
-  .bookmark-card {
-    gap: 8px;
-    padding: 7px 9px;
-  }
-  .favicon {
-    width: 34px;
-    height: 34px;
-    padding: 4px;
-  }
-  .favicon img {
-    width: 25px;
-    height: 25px;
-  }
-  .workspace-footer {
-    padding-top: 8px;
-  }
+.bookmark-card {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  min-height: 0;
+  padding: 7px 10px;
+  gap: 8px;
+  overflow: visible;
 }
-
-/* Even shorter desktop windows: prioritize showing every bookmark over oversized chrome. */
-@media (min-width: 701px) and (max-height: 720px) {
-  .workspace {
-    padding-top: 9px;
-    padding-bottom: 6px;
-  }
-  .header {
-    margin-bottom: 7px;
-  }
-  .search-section {
-    margin-bottom: 10px;
-  }
-  .search-input {
-    height: 40px;
-  }
-  .engine-row {
-    margin-top: 4px;
-  }
-  .collection-heading {
-    margin-bottom: 7px;
-  }
-  :root {
-    --card-height: 3.4rem;
-  }
-  .bookmarks-grid {
-    gap: 6px;
-  }
+.bookmark-card > .bookmark-link {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0 34px 0 0;
+  gap: 8px;
 }
+.bookmark-card .favicon {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+}
+.bookmark-card .favicon img { width: 26px; height: 26px; }
+.bookmark-card .meta { min-width: 0; flex: 1 1 auto; text-align: left; }
+.bookmark-card .card-title { font-size: .9rem; text-align: left; }
+.bookmark-card .card-url { display: block; font-size: .7rem; }
+.bookmark-card .card-actions { position: absolute; top: 4px; right: 4px; }
+.workspace-footer { display: none; }
 
-
-/* Short desktop viewport: compact the full homepage, not the bookmark list. */
 @media (min-width: 701px) and (max-height: 850px) {
   .workspace { padding: 10px 16px 8px; }
   .header { margin-bottom: 8px; gap: 8px; }
@@ -551,26 +488,6 @@ body { height: auto; min-height: 100%; overflow: visible; }
   .collection-heading { margin-bottom: 7px; }
   .collection-heading h2 { font-size: .95rem; line-height: 1.2; }
   .collection-heading p { margin-top: 1px; font-size: .68rem; }
-  :root { --card-height: 3.35rem; }
-  .bookmarks-grid { gap: 7px; }
-  .bookmark-card {
-    box-sizing: border-box;
-    height: var(--card-height);
-    min-height: var(--card-height);
-    padding: 4px 7px;
-    gap: 7px;
-  }
-  .bookmark-card > .bookmark-link {
-    box-sizing: border-box;
-    min-height: 0;
-    padding: 0 27px 0 0;
-    gap: 6px;
-  }
-  .favicon { flex: 0 0 30px; width: 30px; height: 30px; padding: 3px; }
-  .favicon img { width: 24px; height: 24px; }
-  .card-title { font-size: .82rem; line-height: 1.2; }
-  .card-url { font-size: .65rem; line-height: 1.2; }
-  .workspace-footer { padding-top: 5px; }
 }
 @media (min-width: 701px) and (max-height: 720px) {
   .workspace { padding-top: 7px; padding-bottom: 5px; }
@@ -578,6 +495,15 @@ body { height: auto; min-height: 100%; overflow: visible; }
   .search-section { margin-bottom: 6px; }
   .search-input { height: 36px; }
   .collection-heading { margin-bottom: 5px; }
-  :root { --card-height: 3.05rem; }
-  .bookmarks-grid { gap: 5px; }
+}
+@media (max-width: 700px) {
+  .app { display: flex; flex-direction: column; min-height: 100dvh; }
+  .sidebar { position: static; width: 100%; height: auto; min-height: 0; overflow: visible; }
+  .workspace { width: 100%; min-height: 0; padding: 18px; }
+  .columns-toolbar { display: none; }
+  .bookmarks-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 64px; gap: 10px; }
+  .bookmark-card { padding: 8px; gap: 7px; }
+}
+@media (max-width: 360px) {
+  .bookmarks-grid { grid-template-columns: minmax(0, 1fr); }
 }
