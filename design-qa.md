@@ -53,3 +53,13 @@ final result: passed（开发预览；非线上发布）
 - 紧凑/舒适密度切换独立持久化。紧凑保留图标、标题和网址，舒适额外显示描述。主题色、深浅主题、搜索、数据面板、添加/编辑弹窗及字段错误状态均通过浏览器回归。
 - 性能证据：10,000条记录均生成卡片与懒加载图片节点，`content-visibility:auto`生效；CI runner初次挂载约60秒，属于压力测试且存在明显成本。5,000条收藏下工具面板30次操作P95约0.8ms，网格子节点变更0次。不可把该压力结果外推为实体设备性能。
 - 限制：此次真实浏览器覆盖为 GitHub Actions 的 Chromium；Safari、Firefox、实体手机触控/软键盘、屏幕阅读器尚未专项验证。自动化通过不等于完成全部 WCAG 2.2 AA 人工审计。
+
+
+## 正式部署结果（2026-11-09，北京时间）
+
+- PR #2 已合并，main SHA：`4d46dc43e426727742e8067334343f3bb2937668`。
+- GitHub Pages workflow [42591253656](https://github.com/Night-SHANG/my_bookmarks/actions/runs/42591253656) success，部署 payload SHA 与 main 一致。
+- Pages artifact ID `13661680449` 已下载检查，包含最终页面、脚本、样式、manifest、favicon 和各尺寸安装图标。最终 HTML 没有分页控件，JS 没有分页状态或基于窗口宽度改写列数的函数。
+- 正式站点：<https://night-shang.github.io/my_bookmarks/>。
+- 旧生产备份 `backup/production-live-20261109` 保持 `927079d` 不变。
+- Web 读取工具无法直接加载 Pages 域名；线上核验限于 GitHub Pages 部署成功日志和部署 artifact 文件检查，实体浏览器与其他浏览器引擎仍未专项验证。
