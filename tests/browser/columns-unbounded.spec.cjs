@@ -2,7 +2,8 @@ const {test,expect}=require('@playwright/test');
 const fs=require('node:fs');
 const path=require('node:path');
 const iconFile=path.resolve(__dirname,'../../favicon-32x32.png');
-const entry=i=>({id:'columns-'+i,title:'站点 '+i,url:'https://example.org/'+i,desc:i%2?'自定义说明':'',category:'测试分类',icon:'https://example.org/favicon.ico'});
+const performanceIcon='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAM0lEQVR4nO3OQQEAMAjEsGPq5mda0TNk8EkNNPX6/ix2NucAAAAAAAAAAAAAAAAAAABJMlGU';
+const entry=i=>({id:'columns-'+i,title:'站点 '+i,url:'https://example.org/'+i,desc:i%2?'自定义说明':'',category:'测试分类',icon:performanceIcon});
 async function setup(page,columns,width=3840,count=256){
  await page.setViewportSize({width,height:1080});
  await page.route('**/*',route=>{
