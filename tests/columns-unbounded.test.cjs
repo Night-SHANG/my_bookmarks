@@ -11,6 +11,9 @@ function setup(saved=null){
  const context=vm.createContext({
   COLUMNS_KEY:'nav_columns',
   colsDisplay:{textContent:'',title:'',setAttribute:(k,v)=>attrs[k]=v},
+  window:{innerWidth:1800,addEventListener(){}},
+  bookmarksGrid:{clientWidth:1800},
+  getComputedStyle:()=>({columnGap:'10px'}),
   document:{documentElement:{style:{setProperty:(k,v)=>vars[k]=String(v)},dataset:{}},getElementById:id=>controls[id]},
   readSetting:(_key,fallback)=>stored??fallback,
   writeSetting:(_key,value)=>{if(!writable)return false;stored=String(value);return true;},
@@ -45,7 +48,13 @@ test('invalid values never persist or update the CSS preference',()=>{
 test('storage failure leaves the saved preference and CSS unchanged',()=>{
  const s=setup('8');s.apply();s.fail();assert.equal(s.set(9),false);assert.equal(s.stored(),'8');assert.equal(s.vars['--columns'],'8');
 });
-test('column preference code does not inspect viewport or grid dimensions',()=>{
- const code=source.slice(start,end);
- assert.doesNotMatch(code,/innerWidth|clientWidth|getBoundingClientRect|getComputedStyle|ResizeObserver/);
+test('effective columns adapt to available width while saved preference remains unchanged',()=>{
+ const s=setup('8');
+ assert.equal(s.get(),8);
+ assert.equal(s.apply(),8);
+ assert.equal(s.vars['--columns'],'8');
+ s.context.bookmarksGrid.clientWidth=1200;
+ assert.equal(s.apply(),5);
+ assert.equal(s.get(),8);
+ assert.equal(s.stored(),'8');
 });
