@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 const path=require('node:path');
-const iconFile=path.resolve(__dirname,'../../favicon-32x32.png');
+const iconFile=path.resolve(__dirname,'../../favicon.svg');
 const entries=(count,categories=10)=>Array.from({length:count},(_,i)=>({id:'sidebar-'+i,title:'网站 '+i,url:'https://site-'+(i%categories)+'.example/',desc:'导航图标测试',category:'分类 '+(i%categories),icon:''}));
 async function openSeeded(page,{width=1383,height=690,data=entries(30),extras={}}={}){
  await page.setViewportSize({width,height});
@@ -21,12 +21,12 @@ async function waitForIcon(img){
  await expect.poll(()=>img.evaluate(el=>getComputedStyle(el).opacity)).toBe('1');
 }
 test('legacy relative favicon paths still resolve from the navigation origin',async({page})=>{
- const data=[{id:'relative-icon',title:'本地相对图标',url:'https://bookmark.example/',desc:'',category:'测试',icon:'favicon-32x32.png'}];
+ const data=[{id:'relative-icon',title:'本地相对图标',url:'https://bookmark.example/',desc:'',category:'测试',icon:'favicon.svg'}];
  await openSeeded(page,{data});
  const img=page.locator('.bookmark-card .favicon img');
  await expect.poll(()=>img.evaluate(el=>el.naturalWidth)).toBeGreaterThan(0);
  expect(await img.evaluate(el=>new URL(el.currentSrc).origin)).toBe('http://127.0.0.1:4173');
- expect(await img.evaluate(el=>new URL(el.currentSrc).pathname)).toBe('/favicon-32x32.png');
+ expect(await img.evaluate(el=>new URL(el.currentSrc).pathname)).toBe('/favicon.svg');
  await expect(page.locator('.favicon .fa-globe')).toHaveCount(0);
 });
 test('all automatic favicons load from the site origin instead of remaining globe placeholders',async({page})=>{

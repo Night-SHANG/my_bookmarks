@@ -93,3 +93,10 @@ CI `42566860067` 的 65 项 Chromium 用例中 62 通过、3 失败。单元测�
 - 最终修复：相对图标先按导航页 `document.baseURI` 解析以保持旧数据兼容，再按书签 URL 解析作为第二候选；只有这两种保存路径都失败后才尝试网站 favicon 候选。绝对 URL、data URL 保持原意，重复候选去重。
 - favicon 浏览器 fixture 改为对常规外站图标请求提供仓库内真实 PNG 文件，对 `broken.example` 明确返回404，以分别验证成功显示、坏缓存清理、用户自定义图标失败后的域名回退。新增本地相对路径回归，确认旧版相对图标仍从导航站点根路径加载。
 - 侧栏 sticky 与短视口压缩测试已通过；35分类时自动取消 sticky，保留整页自然滚动，无内层滚动条。
+
+
+## 浏览器图标 fixture 校正（2026-11-09）
+
+- CI `42601708221`：单测和 build 通过；Chromium 61通过、3失败。短视口 sticky 与35分类整页滚动两项继续通过；favicon 相关失败都发生在图像 fixture 未产生 `naturalWidth`，不再是布局问题。
+- 仓库内 PNG favicon fixture 在 Chromium route.fulfill 测试路径中没有解码为有效图像；将浏览器图标 fixture 改为仓库内已被浏览器标签页测试覆盖的有效 `favicon.svg`，同样从本地文件响应，避免测试自制二进制数据。生产图标资源不变。
+- 相对图标回归使用真实 `favicon.svg` 相对路径，验证从导航页 `document.baseURI` 解析，并保留书签 URL 作为第二候选。
