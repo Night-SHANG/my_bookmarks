@@ -409,6 +409,9 @@ html, body { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: aut
   top: 0;
   align-self: start;
 }
+/* Keep one root document scrollport; nested body scrolling breaks sticky navigation. */
+html { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; }
+body { height: auto; min-height: 100%; overflow: visible; }
 @media (min-width: 701px) and (max-height: 760px) {
   .sidebar {
     padding-top: 10px;

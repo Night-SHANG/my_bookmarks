@@ -671,10 +671,15 @@ function renderBookmarks() {
         fav.setAttribute('aria-hidden', 'true');
         img.style.display = 'block';
         img.style.opacity = '0';
-        const candidates = [...new Set([
-            ...(b.icon && b.icon.trim() ? [b.icon.trim()] : []),
-            ...faviconUrlsFor(b.url)
-        ])];
+        let customIcon = null;
+        if (b.icon && b.icon.trim()) {
+            try { customIcon = new URL(b.icon.trim(), b.url).href; }
+            catch (e) { customIcon = b.icon.trim(); }
+        }
+        // Most bookmarks already have an explicit icon. Defer the expensive
+        // discovery list until that icon actually fails.
+        const candidates = customIcon ? [customIcon] : faviconUrlsFor(b.url);
+        let fallbackCandidatesLoaded = !customIcon;
         img.src = candidates[0];
         fav.appendChild(img);
         let idx = 0;
@@ -694,6 +699,10 @@ function renderBookmarks() {
         img.onerror = function () {
             const failedUrl = img.currentSrc || img.src;
             try { clearCachedFavicon(new URL(b.url).hostname, failedUrl); } catch (e) { /* 忽略 */ }
+            if (customIcon && !fallbackCandidatesLoaded) {
+                fallbackCandidatesLoaded = true;
+                candidates.push(...faviconUrlsFor(b.url).filter(candidate => candidate !== customIcon));
+            }
             idx++;
             if (idx < candidates.length) {
                 img.src = candidates[idx];
