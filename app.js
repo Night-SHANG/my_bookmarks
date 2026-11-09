@@ -66,9 +66,7 @@ function scheduleFaviconFallback(favicon) {
     if (faviconFallbackTimer !== null) return;
     // One shared timeout serves every pending icon; avoids thousands of timers.
     faviconFallbackTimer = setTimeout(() => {
-        for (const node of pendingFaviconFallbacks) {
-            if (node.querySelector('.fa-spinner')) node.innerHTML = '<i class="fas fa-globe" aria-label="网站图标暂不可用"></i>';
-        }
+        // The globe placeholder is visible throughout loading; only clear bookkeeping here.
         pendingFaviconFallbacks.clear();
         faviconFallbackTimer = null;
     }, 8000);
@@ -638,6 +636,7 @@ function renderBookmarks() {
         return;
     }
 
+    const fragment = document.createDocumentFragment();
     list.forEach((b, visibleIndex) => {
         const card = document.createElement('article');
         const link = document.createElement('a');
@@ -654,7 +653,7 @@ function renderBookmarks() {
         // 图标
         const fav = document.createElement('div');
         fav.className = 'favicon';
-        fav.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+        fav.innerHTML = '<i class="fas fa-globe" aria-label="网站图标加载中"></i>';
 
         const img = document.createElement('img');
         img.alt = '';
@@ -664,6 +663,7 @@ function renderBookmarks() {
         img.style.display = 'none';
         const candidates = (b.icon && b.icon.trim()) ? [b.icon.trim()] : faviconUrlsFor(b.url);
         img.src = candidates[0];
+        fav.appendChild(img);
         let idx = 0;
         scheduleFaviconFallback(fav);
         img.onload = function () {
@@ -721,46 +721,27 @@ function renderBookmarks() {
         actionPanel.id = 'bookmark-actions-' + visibleIndex;
         actionPanel.setAttribute('role', 'group'); actionPanel.setAttribute('aria-label', b.title + '的操作');
         moreBtn.setAttribute('aria-controls', actionPanel.id);
-        const actionButton = (name, className, run) => {
+        const actionButton = (name, className, action) => {
             const button = document.createElement('button');
             button.type = 'button'; button.className = 'action-btn ' + className;
+            button.dataset.action = action;
             button.textContent = name; button.title = name;
             button.setAttribute('aria-label', name + ' ' + b.title);
-            button.addEventListener('click', e => { e.stopPropagation(); run(); });
             actionPanel.appendChild(button); return button;
         };
-        actionButton('编辑', 'edit-btn', () => {
-            openModal('edit', b); modalReturnFocus = moreBtn; modalReturnBookmark = String(b.id);
-        });
-        actionButton('删除', 'delete-btn', () => {
-            if (!confirm('确认删除【' + b.title + '】？')) return;
-            const currentList = getFilteredBookmarks();
-            const index = currentList.findIndex(item => item.id === b.id);
-            const nextId = currentList[index + 1]?.id ?? currentList[index - 1]?.id;
-            if (!save(bookmarks.filter(x => x.id !== b.id))) return;
-            renderAll();
-            if (nextId !== undefined) focusBookmark(nextId); else document.getElementById('addBtn').focus();
-            showToast('已删除 ' + b.title, 'success');
-        });
+        actionButton('编辑', 'edit-btn', 'edit');
+        actionButton('删除', 'delete-btn', 'delete');
         const index = visibleIndex;
-        actionButton('上移', 'move-up-btn', () => moveBookmark(b.id, -1)).disabled = index <= 0;
-        actionButton('下移', 'move-down-btn', () => moveBookmark(b.id, 1)).disabled = index >= list.length - 1;
-        moreBtn.addEventListener('click', e => { e.stopPropagation(); toggleCardActions(actions); });
+        actionButton('上移', 'move-up-btn', 'move-up').disabled = index <= 0;
+        actionButton('下移', 'move-down-btn', 'move-down').disabled = index >= list.length - 1;
         actions.append(moreBtn, actionPanel);
-
-        // 拖拽事件
-        card.addEventListener('dragstart', handleDragStart);
-        card.addEventListener('dragend', handleDragEnd);
-        card.addEventListener('dragover', handleDragOver);
-        card.addEventListener('dragenter', handleDragEnter);
-        card.addEventListener('dragleave', handleDragLeave);
-        card.addEventListener('drop', handleDrop);
 
         link.append(fav, meta);
         card.appendChild(link);
         card.appendChild(actions);
-        bookmarksGrid.appendChild(card);
+        fragment.appendChild(card);
     });
+    bookmarksGrid.appendChild(fragment);
     if (focusedId) {
         const card = findBookmarkCard(focusedId);
         (card?.querySelector(focusedLink ? '.bookmark-link' : '.more-btn'))?.focus({preventScroll: true});
@@ -1062,6 +1043,53 @@ function handleDrop(e) {
         }
     }
 }
+
+
+// Delegate card actions and drag interactions once on the grid. This keeps large
+// continuous collections from allocating dozens of listeners per bookmark.
+bookmarksGrid.addEventListener('click', e => {
+    const button = e.target.closest?.('.card-actions button');
+    if (!button || !bookmarksGrid.contains(button)) return;
+    e.stopPropagation();
+    const card = button.closest('.bookmark-card');
+    const bookmark = bookmarks.find(item => String(item.id) === card?.dataset.id);
+    if (!card || !bookmark) return;
+    if (button.classList.contains('more-btn')) {
+        toggleCardActions(card.querySelector('.card-actions'));
+        return;
+    }
+    switch (button.dataset.action) {
+        case 'edit': {
+            openModal('edit', bookmark);
+            modalReturnFocus = card.querySelector('.more-btn');
+            modalReturnBookmark = String(bookmark.id);
+            break;
+        }
+        case 'delete': {
+            if (!confirm('确认删除【' + bookmark.title + '】？')) return;
+            const currentList = getFilteredBookmarks();
+            const index = currentList.findIndex(item => String(item.id) === String(bookmark.id));
+            const nextId = currentList[index + 1]?.id ?? currentList[index - 1]?.id;
+            if (!save(bookmarks.filter(item => String(item.id) !== String(bookmark.id)))) return;
+            renderAll();
+            if (nextId !== undefined) focusBookmark(nextId); else document.getElementById('addBtn').focus();
+            showToast('已删除 ' + bookmark.title, 'success');
+            break;
+        }
+        case 'move-up': moveBookmark(bookmark.id, -1); break;
+        case 'move-down': moveBookmark(bookmark.id, 1); break;
+    }
+});
+const cardForDragEvent = e => {
+    const card = e.target.closest?.('.bookmark-card');
+    return card && card.parentNode === bookmarksGrid ? card : null;
+};
+bookmarksGrid.addEventListener('dragstart', e => { const card = cardForDragEvent(e); if (card) handleDragStart.call(card, e); });
+bookmarksGrid.addEventListener('dragend', e => { const card = cardForDragEvent(e); if (card) handleDragEnd.call(card, e); });
+bookmarksGrid.addEventListener('dragover', e => { if (cardForDragEvent(e)) handleDragOver(e); });
+bookmarksGrid.addEventListener('dragenter', e => { const card = cardForDragEvent(e); if (card) handleDragEnter.call(card, e); });
+bookmarksGrid.addEventListener('dragleave', e => { const card = cardForDragEvent(e); if (card) handleDragLeave.call(card, e); });
+bookmarksGrid.addEventListener('drop', e => { const card = cardForDragEvent(e); if (card) handleDrop.call(card, e); });
 
 // ========== 拖拽排序：分类 ==========
 

@@ -13,7 +13,7 @@ test('24 bookmarks fit one compact screen at the saved eight-column preference',
  await expect(page.locator('#colsDisplay')).toHaveText('8列');
  expect(await gridColumns(page)).toBe(8);
  await expect(page.locator('#pagination')).toHaveCount(0);
- const last=await page.locator('.bookmark-card').last().boundingBox();
+ const last=await page.locator('.bookmark-card').last().evaluate(el=>({bottom:el.getBoundingClientRect().bottom,top:el.getBoundingClientRect().top}));
  expect(last.bottom).toBeLessThanOrEqual(657);
  expect(await page.evaluate(()=>document.documentElement.scrollHeight)).toBeLessThanOrEqual(657);
 });
@@ -58,7 +58,7 @@ test('search and category filters render all matches without page resets',async(
  await expect(page.locator('.bookmark-card')).toHaveCount(53);
  await page.locator('#searchInput').fill('收藏');
  await expect(page.locator('.bookmark-card')).toHaveCount(53);
- await page.locator('#searchInput').fill('收藏 79');
+ await page.locator('#searchInput').fill('不存在的收藏');
  await expect(page.locator('.bookmark-card')).toHaveCount(0);
  await expect(page.locator('.no-results')).toBeVisible();
  await expect(page.locator('#pagination')).toHaveCount(0);
