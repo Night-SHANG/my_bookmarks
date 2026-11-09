@@ -23,7 +23,7 @@ test('retired pagination state is removed; columns and density are independent p
  assert.doesNotMatch(source,/currentPage|totalPages|pageSize|measurePageSize|renderPagination|ResizeObserver/);
  assert.doesNotMatch(html,/id="pagination"|id="nextPage"|id="prevPage"/);
  assert.match(functions(['applyColumnPreference']),/clientWidth/);
- assert.match(functions(['applyColumnPreference']),/205/);
+ assert.match(functions(['applyColumnPreference']),/180/);
  assert.match(source,/window\.addEventListener\('resize', applyColumnPreference\)/);
  assert.match(source,/const DENSITY_KEY = 'nav_density'/);
  assert.match(source,/function getDensity\(\)/);
