@@ -37,6 +37,27 @@ test('mobile grid reflows without overwriting desktop preference',async({page})=
  await page.setViewportSize({width:1366,height:768});
  expect(await page.locator('#bookmarksGrid').evaluate(el=>getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).length)).toBe(5);
 });
+
+test('column buttons stop at the visible width limit and decrement immediately',async({page})=>{
+ await setup(page,16,1366,24);
+ await page.setViewportSize({width:1366,height:768});
+ await expect(page.locator('#colsDisplay')).toHaveText('5列');
+ await expect(page.locator('#colsIncrease')).toBeDisabled();
+ expect(await page.evaluate(()=>localStorage.getItem('nav_columns'))).toBe('16');
+
+ await page.locator('#colsIncrease').click({force:true});
+ expect(await page.evaluate(()=>localStorage.getItem('nav_columns'))).toBe('16');
+ await page.locator('#colsDecrease').click();
+ await expect(page.locator('#colsDisplay')).toHaveText('4列');
+ expect(await page.evaluate(()=>localStorage.getItem('nav_columns'))).toBe('4');
+
+ await page.locator('#colsIncrease').click();
+ await expect(page.locator('#colsDisplay')).toHaveText('5列');
+ expect(await page.evaluate(()=>localStorage.getItem('nav_columns'))).toBe('5');
+ await expect(page.locator('#colsIncrease')).toBeDisabled();
+ await page.locator('#colsDecrease').click();
+ await expect(page.locator('#colsDisplay')).toHaveText('4列');
+});
 test('large libraries render every record in continuous flow with lazy favicon requests',async({page})=>{
  test.setTimeout(120000);
  await setup(page,8,1366,10000);
