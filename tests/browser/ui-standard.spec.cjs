@@ -60,12 +60,13 @@ test('bookmark and category reordering work without dragging and persist',async(
  await page.reload();expect((await stored(page))[0].id).toBe('standard-1');expect(await page.locator('.cat-chip').evaluateAll(nodes=>nodes.map(n=>n.dataset.category))).toEqual(order);
 });
 
-test('filtered cross-page move keeps unrelated items and search context',async({page})=>{
+test('filtered continuous move keeps unrelated items and search context',async({page})=>{
  await ready(page,80);await page.locator('#searchInput').fill('开发');
- const size=Number(await page.locator('#bookmarksGrid').getAttribute('data-page-size'));const last=page.locator('.bookmark-card').last();const id=await last.getAttribute('data-id');
- const before=await stored(page);await last.locator('.more-btn').click();await last.locator('.move-down-btn').click();
- await expect(page.locator('#bookmarksGrid')).toHaveAttribute('data-page','2');await expect(page.locator('#searchInput')).toHaveValue('开发');await expect(page.locator(`[data-id="${id}"] .more-btn`)).toBeFocused();
- const after=await stored(page);expect(after.filter(x=>x.category==='学习')).toEqual(before.filter(x=>x.category==='学习'));expect(after.filter(x=>x.category==='开发')[size].id).toBe(id);
+ const filtered=page.locator('.bookmark-card');await expect(filtered).toHaveCount(40);
+ const card=filtered.nth(10),id=await card.getAttribute('data-id');
+ const before=await stored(page);await card.locator('.more-btn').click();await card.locator('.move-down-btn').click();
+ await expect(page.locator('#searchInput')).toHaveValue('开发');await expect(page.locator(`[data-id="${id}"] .more-btn`)).toBeFocused();
+ const after=await stored(page);expect(after.filter(x=>x.category==='学习')).toEqual(before.filter(x=>x.category==='学习'));
 });
 
 for(const theme of ['light','dark'])test('accent text, selected counts and hover contrast in '+theme,async({page})=>{

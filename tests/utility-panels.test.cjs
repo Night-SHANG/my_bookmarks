@@ -165,7 +165,8 @@ test('file errors and invalid JSON never reach the import commit',()=>{
  assert.equal(s.imported.length,0);assert.equal(s.errors.length,2);
 });
 test('grid row geometry is preserved without list-specific layout',()=>{
- assert.match(css,/\.bookmarks-grid\s*\{\s*row-gap:\s*10px/);
+ assert.match(css,/grid-template-rows:\s*none/);
+ assert.match(css,/grid-auto-rows:\s*var\(--card-height\)/);
  assert.doesNotMatch(css,/\.list-view|--size-list-row/);
- assert.match(css,/--size-grid-row:\s*6\.2666666667rem/);
+ assert.match(css,/--size-grid-row:\s*4\.8rem/);
 });

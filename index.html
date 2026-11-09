@@ -60,15 +60,6 @@
   <section class="collection" aria-label="收藏网站">
    <div class="collection-heading"><div><h2 id="collectionTitle">全部书签</h2><p id="bookmarkCount" aria-live="polite"></p></div></div>
    <main class="bookmarks-grid" id="bookmarksGrid"></main>
-   <nav class="pagination" id="pagination" aria-label="书签分页">
-    <span class="page-summary" id="pageSummary"></span>
-    <div class="pagination-controls">
-     <button class="page-button" id="prevPage" type="button" aria-label="上一页" disabled>上一页</button>
-     <div class="page-numbers" id="pageNumbers"></div>
-     <button class="page-button" id="nextPage" type="button" aria-label="下一页">下一页</button>
-    </div>
-   </nav>
-   <span class="sr-only" id="paginationStatus" role="status" aria-live="polite" aria-atomic="true"></span>
    <div class="empty-state" id="emptyState" style="display:none"><i class="far fa-bookmark" aria-hidden="true"></i><h3>收藏你的第一个网站</h3><p>点击「添加站点」，把常用网站放在这里。</p></div>
   </section>
   <footer class="workspace-footer"><span class="storage-note">数据仅保存在此浏览器</span></footer>
@@ -82,8 +73,15 @@
         <div class="data-actions"><button class="btn btn-ghost" id="importBtn" type="button">导入 JSON</button><button class="btn btn-ghost" id="exportBtn" type="button">导出 JSON</button></div>
     </section>
     <section class="utility-panel appearance-panel" id="appearancePanel" role="dialog" aria-modal="false" aria-labelledby="appearanceTitle" hidden>
-        <div class="utility-heading"><h2 id="appearanceTitle">主题色</h2><button type="button" class="btn btn-icon" data-close-panel aria-label="关闭外观设置"><i class="fas fa-times" aria-hidden="true"></i></button></div>
+        <div class="utility-heading"><h2 id="appearanceTitle">外观设置</h2><button type="button" class="btn btn-icon" data-close-panel aria-label="关闭外观设置"><i class="fas fa-times" aria-hidden="true"></i></button></div>
         <p class="task-error" id="appearanceError" role="alert" hidden></p>
+        <div class="density-setting">
+            <span id="densityLabel">书签密度</span>
+            <div class="density-options" role="group" aria-labelledby="densityLabel">
+                <button type="button" class="density-option" id="densityCompactBtn" aria-pressed="true">紧凑</button>
+                <button type="button" class="density-option" id="densityComfortableBtn" aria-pressed="false">舒适</button>
+            </div>
+        </div>
         <div class="color-presets" role="group" aria-label="预设主题色">
             <button type="button" class="color-dot" data-color="#73d548" style="background:#73d548" title="鲜叶绿" aria-label="鲜叶绿" aria-pressed="false"></button>
             <button type="button" class="color-dot" data-color="#54c795" style="background:#54c795" title="薄荷绿" aria-label="薄荷绿" aria-pressed="false"></button>

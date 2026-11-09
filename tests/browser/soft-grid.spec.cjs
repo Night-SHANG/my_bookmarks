@@ -23,7 +23,11 @@ for(const file of [false,true])test(`legacy list preference becomes grid without
  expect(await stored(page)).toEqual(entries);
  expect(await page.evaluate(()=>localStorage.getItem('nav_columns'))).toBe('6');
  expect(await page.evaluate(()=>localStorage.getItem('nav_view'))).toBe('list'); // Historical key is ignored, not deleted.
- await page.locator('#nextPage').click();await expect(page.locator('#bookmarksGrid')).toHaveAttribute('data-page','2');
+ await expect(page.locator('.bookmark-card')).toHaveCount(entries.length);
+ await expect(page.locator('#pagination')).toHaveCount(0);
+ await page.locator('#appearanceBtn').click();await page.locator('#densityComfortableBtn').click();
+ await expect(page.locator('#densityComfortableBtn')).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('.bookmark-card').first().locator('.card-desc')).toBeVisible();
  await page.reload();await expect(page.locator('#bookmarksGrid')).not.toHaveClass(/list-view/);
  expect(await stored(page)).toEqual(entries);await capture(page,file?'file':'desktop');
 });

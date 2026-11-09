@@ -80,14 +80,14 @@ test('selected counts do not dilute the tested accent background',()=>{
  assert.match(css,/\.cat-chip\.active \.cat-count\s*\{[^}]*background:\s*transparent/s);
  assert.match(css,/--text-on-accent-hover/);assert.match(css,/--text-on-accent-soft/);
 });
-test('move bookmark swaps the filtered neighbor and follows it across pages',()=>{
+test('move bookmark swaps the filtered neighbor without page state',()=>{
  const old=[{id:'a'},{id:'b'},{id:'c'}];let saved,focused;
- const c=context(['moveBookmark'],{bookmarks:old,getFilteredBookmarks:()=>old,save:v=>(saved=v,true),pageSize:2,currentPage:1,renderBookmarks(){},focusBookmark:id=>focused=id,closeCardActions(){},clearTaskError(){},showToast(){}});
- assert.equal(c.moveBookmark('b',1),true);assert.deepEqual(Array.from(saved,x=>x.id),['a','c','b']);assert.equal(c.currentPage,2);assert.equal(focused,'b');assert.deepEqual(old.map(x=>x.id),['a','b','c']);
+ const c=context(['moveBookmark'],{bookmarks:old,getFilteredBookmarks:()=>old,save:v=>(saved=v,true),renderBookmarks(){},focusBookmark:id=>focused=id,closeCardActions(){},clearTaskError(){},showToast(){}});
+ assert.equal(c.moveBookmark('b',1),true);assert.deepEqual(Array.from(saved,x=>x.id),['a','c','b']);assert.equal(focused,'b');assert.deepEqual(old.map(x=>x.id),['a','b','c']);
 });
-test('sort failure and boundary clicks do not mutate data or current page',()=>{
- const old=[{id:'a'},{id:'b'}];const c=context(['moveBookmark'],{bookmarks:old,getFilteredBookmarks:()=>old,save:()=>false,pageSize:1,currentPage:1,closeCardActions(){},clearTaskError(){},renderBookmarks(){throw Error('must not render')},focusBookmark(){},showToast(){}});
- assert.equal(c.moveBookmark('a',-1),false);assert.equal(c.moveBookmark('a',1),false);assert.equal(c.currentPage,1);assert.equal(c.bookmarks,old);
+test('sort failure and boundary clicks do not mutate data',()=>{
+ const old=[{id:'a'},{id:'b'}];const c=context(['moveBookmark'],{bookmarks:old,getFilteredBookmarks:()=>old,save:()=>false,closeCardActions(){},clearTaskError(){},renderBookmarks(){throw Error('must not render')},focusBookmark(){},showToast(){}});
+ assert.equal(c.moveBookmark('a',-1),false);assert.equal(c.moveBookmark('a',1),false);assert.equal(c.bookmarks,old);
 });
 test('non-drag sorting is exposed for bookmarks and categories',()=>{
  assert.match(source,/move-up-btn/);assert.match(source,/move-down-btn/);assert.match(html,/id="categoryOrderSelect"/);assert.match(html,/id="categoryUpBtn"/);assert.match(html,/id="categoryDownBtn"/);
@@ -105,9 +105,10 @@ test('errors are persistent task feedback and demo/snapshot features remain remo
  assert.match(source,/function showTaskError/);assert.doesNotMatch(functions(['showTaskError']),/setTimeout/);
  assert.doesNotMatch(source+html,/DEMO_BOOKMARKS|demoMode|demoBtn|restoreBtn|my_nav_backup/);
 });
-test('column ceiling is not reintroduced and row height can follow text size',()=>{
- assert.doesNotMatch(functions(['getColumns','setColumns','applyEffectiveColumns']),/Math\.min\(10|>=\s*10/);
- assert.match(source,/function cardHeightPixels/);assert.match(css,/--size-grid-row:/);
+test('columns have no product ceiling and resize logic is absent from preference functions',()=>{
+ assert.doesNotMatch(functions(['getColumns','setColumns','applyColumnPreference']),/Math\.min\(10|>=\s*10|innerWidth|clientWidth/);
+ assert.doesNotMatch(source,/function measurePageSize|function renderPagination|ResizeObserver/);
+ assert.match(source,/function getDensity/);assert.match(css,/--card-height/);
 });
 
 test('drag node swaps match saved order in either direction and for adjacent cards',()=>{

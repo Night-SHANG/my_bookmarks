@@ -9,6 +9,9 @@ const CATEGORY_ORDER_KEY = 'category_order';
 const FAVICON_CACHE_KEY = 'favicon_cache_v1';
 const THEME_KEY = 'nav_theme';
 const COLUMNS_KEY = 'nav_columns';
+const DENSITY_KEY = 'nav_density';
+const pendingFaviconFallbacks = new Set();
+let faviconFallbackTimer = null;
 const ACCENT_KEY = 'nav_accent';
 
 // ========== 默认数据 ==========
@@ -22,10 +25,7 @@ let bookmarks = load();
 let currentCategory = '全部';
 let currentEngine = 'baidu';
 let searchQuery = '';
-let currentPage = 1;
-let totalPages = 1;
-let pageSize = 1;
-let initialized = false;
+
 
 // ========== DOM 引用 ==========
 const bookmarksGrid = document.getElementById('bookmarksGrid');
@@ -60,6 +60,33 @@ let importReadVersion = 0;
 let activeImportReader = null;
 
 // ========== 工具函数 ==========
+
+function scheduleFaviconFallback(favicon) {
+    pendingFaviconFallbacks.add(favicon);
+    if (faviconFallbackTimer !== null) return;
+    // One shared timeout serves every pending icon; avoids thousands of timers.
+    faviconFallbackTimer = setTimeout(() => {
+        // The globe placeholder is visible throughout loading; only clear bookkeeping here.
+        pendingFaviconFallbacks.clear();
+        faviconFallbackTimer = null;
+    }, 8000);
+}
+
+function clearFaviconFallback(favicon) {
+    pendingFaviconFallbacks.delete(favicon);
+    if (pendingFaviconFallbacks.size === 0 && faviconFallbackTimer !== null) {
+        clearTimeout(faviconFallbackTimer);
+        faviconFallbackTimer = null;
+    }
+}
+
+function clearAllFaviconFallbacks() {
+    pendingFaviconFallbacks.clear();
+    if (faviconFallbackTimer !== null) {
+        clearTimeout(faviconFallbackTimer);
+        faviconFallbackTimer = null;
+    }
+}
 
 function genId() {
     return 'b_' + Math.random().toString(36).slice(2, 9);
@@ -116,114 +143,59 @@ function load() {
     } catch (e) { storageDamaged = true; return []; }
 }
 
-// ========== 列数控制（最低偏好4列，无固定上限；窄屏按宽度适配） ==========
+// ========== 布局偏好：桌面列数与卡片密度相互独立 ==========
 
 function getColumns() {
     const saved = Number(readSetting(COLUMNS_KEY, '4'));
-    // 仅验证整数可精确表示，不把合法的大列数截断为产品预设上限。
-    return Number.isSafeInteger(saved) && saved > 0 ? Math.max(4, saved) : 4;
+    return Number.isSafeInteger(saved) && saved >= 1 ? saved : 4;
+}
+
+function applyColumnPreference() {
+    const preference = getColumns();
+    document.documentElement.style.setProperty('--columns', String(preference));
+    document.documentElement.dataset.columnLayout = preference >= 6 ? 'compact' : 'wide';
+    colsDisplay.textContent = preference + '列';
+    const explanation = '桌面列数偏好：' + preference + '列';
+    colsDisplay.title = explanation;
+    colsDisplay.setAttribute('aria-label', explanation);
+    document.getElementById('colsDecrease').disabled = preference <= 1;
+    document.getElementById('colsIncrease').disabled = preference >= Number.MAX_SAFE_INTEGER;
+    return preference;
 }
 
 function setColumns(n) {
-    if (!Number.isSafeInteger(n)) {
-        showToast('列数必须是有效整数', 'error');
+    if (!Number.isSafeInteger(n) || n < 1) {
+        showToast('列数必须是大于零的有效整数', 'error');
         return false;
     }
-    n = Math.max(4, n);
-    // 先保存成功，再更新布局；失败时不改变界面与原偏好。
     if (!writeSetting(COLUMNS_KEY, n)) return false;
-    applyEffectiveColumns();
-    if (initialized) renderBookmarks();
+    applyColumnPreference();
     return true;
 }
 
-// Keep the saved preference; narrow windows may display fewer columns.
-function applyEffectiveColumns() {
-    const gridWidth = bookmarksGrid.clientWidth || window.innerWidth - 56;
-    const style = getComputedStyle(bookmarksGrid);
-    const gap = parseFloat(style.columnGap) || 12;
-    const minCardWidth = window.innerWidth <= 700 ? 165 : 180;
-    const maxFit = Math.floor((gridWidth + gap) / (minCardWidth + gap));
-    const preference = getColumns();
-    const actual = Math.min(preference, Math.max(1, maxFit));
-    document.documentElement.style.setProperty('--columns', actual);
-    colsDisplay.textContent = actual + '列';
-    const explanation = actual < preference ? `窗口宽度限制为${actual}列；保存偏好${preference}列，放宽窗口后恢复` : `当前${actual}列`;
-    colsDisplay.title = explanation;
-    colsDisplay.setAttribute('aria-label', explanation);
-    document.getElementById('colsDecrease').disabled = actual <= 4;
-    document.getElementById('colsIncrease').disabled = actual >= Math.max(1, maxFit);
-    return actual;
+function getDensity() {
+    return readSetting(DENSITY_KEY, 'compact') === 'comfortable' ? 'comfortable' : 'compact';
 }
 
-function cardHeightPixels(style) {
-    const value = style.getPropertyValue('--card-height').trim();
-    const resolved = parseFloat(style.gridAutoRows);
-    if (Number.isFinite(resolved) && resolved > 0) return resolved;
-    const number = parseFloat(value);
-    if (Number.isFinite(number) && number > 0) {
-        return value.endsWith('rem') ? Number((number * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 15)).toFixed(4)) : number;
-    }
-    return 94;
+function applyDensity() {
+    const density = getDensity();
+    document.documentElement.dataset.density = density;
+    document.getElementById('densityCompactBtn').setAttribute('aria-pressed', String(density === 'compact'));
+    document.getElementById('densityComfortableBtn').setAttribute('aria-pressed', String(density === 'comfortable'));
+    return density;
 }
 
-function measurePageSize() {
-    const columns = applyEffectiveColumns();
-    const style = getComputedStyle(bookmarksGrid);
-    const cardHeight = cardHeightPixels(style);
-    const gap = parseFloat(style.rowGap) || 12;
-    // Reserve the viewport's row slots even for one result or a sparse last
-    // page. Keep these tracks independent of the number of rendered cards.
-    let rows = 1;
-    // Natural-height fallback still paginates, one row at a time. Never derive
-    // capacity from a grid whose own rendered content determines its height.
-    const app = document.querySelector('.app');
-    if (window.innerWidth > 700 && !app.classList.contains('compact-fallback')) {
-        const height = bookmarksGrid.clientHeight;
-        if (bookmarksGrid.clientWidth > 0 && height < cardHeight) {
-            app.classList.add('compact-fallback');
-        } else {
-            const available = height || Math.max(cardHeight, window.innerHeight - 300);
-            rows = Math.max(1, Math.floor((available + gap + 0.5) / (cardHeight + gap)));
-        }
-    }
-    bookmarksGrid.style.setProperty('--rows', rows);
-    return columns * rows;
+function setDensity(density) {
+    if (!['compact', 'comfortable'].includes(density)) return false;
+    if (!writeSetting(DENSITY_KEY, density, 'appearance')) return false;
+    applyDensity();
+    return true;
 }
 
-function renderPagination(total) {
-    const nav = document.getElementById('pagination');
-    if (!nav) return;
-    nav.hidden = total === 0;
-    document.getElementById('prevPage').disabled = currentPage <= 1;
-    document.getElementById('nextPage').disabled = currentPage >= totalPages;
-    document.getElementById('pageSummary').textContent = `共 ${total} 个站点 · 第 ${currentPage}/${totalPages} 页`;
-    const numbers = document.getElementById('pageNumbers');
-    numbers.replaceChildren();
-    // Keep page navigation bounded even with thousands of bookmarks.
-    const pages = [...new Set([1, currentPage - 1, currentPage, currentPage + 1, totalPages])].filter(n => n >= 1 && n <= totalPages).sort((a,b) => a-b);
-    let previous = 0;
-    for (const page of pages) {
-        if (previous && page > previous + 1) { const dots = document.createElement('span'); dots.textContent = '…'; dots.setAttribute('aria-hidden','true'); numbers.appendChild(dots); }
-        const button = document.createElement('button');
-        button.type = 'button'; button.textContent = page; button.setAttribute('aria-label', `第 ${page} 页`);
-        if (page === currentPage) { button.className = 'active'; button.setAttribute('aria-current','page'); }
-        button.addEventListener('click', () => { currentPage = page; renderBookmarks(); numbers.querySelector('[aria-current="page"]')?.focus(); });
-        numbers.appendChild(button); previous = page;
-    }
-    const status = document.getElementById('paginationStatus');
-    if (status) status.textContent = `第 ${currentPage} 页，共 ${totalPages} 页，本页 ${Math.min(pageSize, Math.max(0, total - (currentPage - 1) * pageSize))} 项`;
-}
-
-function refreshPageLayout() {
-    document.querySelector('.app').classList.remove('compact-fallback');
-    applyEffectiveColumns();
-    renderBookmarks();
-}
-window.addEventListener('resize', refreshPageLayout);
-
-document.getElementById('colsIncrease').addEventListener('click', () => setColumns(applyEffectiveColumns() + 1));
-document.getElementById('colsDecrease').addEventListener('click', () => setColumns(applyEffectiveColumns() - 1));
+document.getElementById('colsIncrease').addEventListener('click', () => setColumns(getColumns() + 1));
+document.getElementById('colsDecrease').addEventListener('click', () => setColumns(getColumns() - 1));
+document.getElementById('densityCompactBtn').addEventListener('click', () => setDensity('compact'));
+document.getElementById('densityComfortableBtn').addEventListener('click', () => setDensity('comfortable'));
 
 // ========== 主题色自定义 ==========
 
@@ -597,7 +569,7 @@ function renderCategories() {
         chip.draggable = true;
 
         chip.addEventListener('click', () => {
-            currentCategory = cat; currentPage = 1; renderAll();
+            currentCategory = cat; renderAll();
             [...categoryBar.children].find(el => el.dataset.category === cat)?.focus({preventScroll: true});
         });
         chip.title = cat === '全部' ? '全部书签' : cat;
@@ -634,18 +606,13 @@ function renderBookmarks() {
     const focusedId = focusedCard?.dataset.id;
     const focusedLink = document.activeElement?.classList.contains('bookmark-link');
     closeCardActions(false);
+    clearAllFaviconFallbacks();
     bookmarksGrid.innerHTML = '';
     bookmarksGrid.style.display = 'grid';
 
     const list = getFilteredBookmarks();
 
-    pageSize = measurePageSize();
-    totalPages = Math.max(1, Math.ceil(list.length / pageSize));
-    currentPage = Math.max(1, Math.min(currentPage, totalPages));
-    bookmarksGrid.dataset.page = currentPage;
-    bookmarksGrid.dataset.pageSize = pageSize;
-    bookmarksGrid.dataset.totalPages = totalPages;
-    renderPagination(list.length);
+    // Render the complete filtered collection; scrolling belongs to the document.
 
     document.getElementById('collectionTitle').textContent = currentCategory === '全部' ? '全部书签' : currentCategory;
     document.getElementById('bookmarkCount').textContent = `${list.length} 个站点${searchQuery ? ' · 搜索结果' : ''}`;
@@ -669,7 +636,8 @@ function renderBookmarks() {
         return;
     }
 
-    list.slice((currentPage - 1) * pageSize, currentPage * pageSize).forEach((b, visibleIndex) => {
+    const fragment = document.createDocumentFragment();
+    list.forEach((b, visibleIndex) => {
         const card = document.createElement('article');
         const link = document.createElement('a');
         link.className = 'bookmark-link';
@@ -685,21 +653,21 @@ function renderBookmarks() {
         // 图标
         const fav = document.createElement('div');
         fav.className = 'favicon';
-        fav.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';
+        fav.innerHTML = '<i class="fas fa-globe" aria-label="网站图标加载中"></i>';
 
         const img = document.createElement('img');
         img.alt = '';
+        img.loading = 'lazy';
+        img.decoding = 'async';
         fav.setAttribute('aria-hidden', 'true');
         img.style.display = 'none';
         const candidates = (b.icon && b.icon.trim()) ? [b.icon.trim()] : faviconUrlsFor(b.url);
         img.src = candidates[0];
+        fav.appendChild(img);
         let idx = 0;
-        const iconTimeout = setTimeout(() => {
-            if (fav.querySelector('.fa-spinner')) fav.innerHTML = '<i class="fas fa-globe" aria-label="网站图标暂不可用"></i>';
-        }, 8000);
-
+        scheduleFaviconFallback(fav);
         img.onload = function () {
-            clearTimeout(iconTimeout);
+            clearFaviconFallback(fav);
             fav.innerHTML = '';
             fav.appendChild(img);
             img.style.display = 'block';
@@ -714,7 +682,10 @@ function renderBookmarks() {
         img.onerror = function () {
             idx++;
             if (idx < candidates.length) img.src = candidates[idx];
-            else { clearTimeout(iconTimeout); fav.innerHTML = '<i class="fas fa-globe" aria-label="网站图标暂不可用"></i>'; }
+            else {
+                clearFaviconFallback(fav);
+                fav.innerHTML = '<i class="fas fa-globe" aria-label="网站图标暂不可用"></i>';
+            }
         };
 
         // 信息区
@@ -750,46 +721,27 @@ function renderBookmarks() {
         actionPanel.id = 'bookmark-actions-' + visibleIndex;
         actionPanel.setAttribute('role', 'group'); actionPanel.setAttribute('aria-label', b.title + '的操作');
         moreBtn.setAttribute('aria-controls', actionPanel.id);
-        const actionButton = (name, className, run) => {
+        const actionButton = (name, className, action) => {
             const button = document.createElement('button');
             button.type = 'button'; button.className = 'action-btn ' + className;
+            button.dataset.action = action;
             button.textContent = name; button.title = name;
             button.setAttribute('aria-label', name + ' ' + b.title);
-            button.addEventListener('click', e => { e.stopPropagation(); run(); });
             actionPanel.appendChild(button); return button;
         };
-        actionButton('编辑', 'edit-btn', () => {
-            openModal('edit', b); modalReturnFocus = moreBtn; modalReturnBookmark = String(b.id);
-        });
-        actionButton('删除', 'delete-btn', () => {
-            if (!confirm('确认删除【' + b.title + '】？')) return;
-            const currentList = getFilteredBookmarks();
-            const index = currentList.findIndex(item => item.id === b.id);
-            const nextId = currentList[index + 1]?.id ?? currentList[index - 1]?.id;
-            if (!save(bookmarks.filter(x => x.id !== b.id))) return;
-            renderAll();
-            if (nextId !== undefined) focusBookmark(nextId); else document.getElementById('addBtn').focus();
-            showToast('已删除 ' + b.title, 'success');
-        });
-        const index = (currentPage - 1) * pageSize + visibleIndex;
-        actionButton('上移', 'move-up-btn', () => moveBookmark(b.id, -1)).disabled = index <= 0;
-        actionButton('下移', 'move-down-btn', () => moveBookmark(b.id, 1)).disabled = index >= list.length - 1;
-        moreBtn.addEventListener('click', e => { e.stopPropagation(); toggleCardActions(actions); });
+        actionButton('编辑', 'edit-btn', 'edit');
+        actionButton('删除', 'delete-btn', 'delete');
+        const index = visibleIndex;
+        actionButton('上移', 'move-up-btn', 'move-up').disabled = index <= 0;
+        actionButton('下移', 'move-down-btn', 'move-down').disabled = index >= list.length - 1;
         actions.append(moreBtn, actionPanel);
-
-        // 拖拽事件
-        card.addEventListener('dragstart', handleDragStart);
-        card.addEventListener('dragend', handleDragEnd);
-        card.addEventListener('dragover', handleDragOver);
-        card.addEventListener('dragenter', handleDragEnter);
-        card.addEventListener('dragleave', handleDragLeave);
-        card.addEventListener('drop', handleDrop);
 
         link.append(fav, meta);
         card.appendChild(link);
         card.appendChild(actions);
-        bookmarksGrid.appendChild(card);
+        fragment.appendChild(card);
     });
+    bookmarksGrid.appendChild(fragment);
     if (focusedId) {
         const card = findBookmarkCard(focusedId);
         (card?.querySelector(focusedLink ? '.bookmark-link' : '.more-btn'))?.focus({preventScroll: true});
@@ -882,7 +834,6 @@ function moveBookmark(id, direction) {
     const next = bookmarks.slice();
     [next[from], next[to]] = [next[to], next[from]];
     if (!save(next)) return false;
-    currentPage = Math.floor(target / pageSize) + 1;
     renderBookmarks(); focusBookmark(id);
     showToast(direction < 0 ? '已上移' : '已下移', 'success');
     return true;
@@ -903,7 +854,6 @@ const engines = {
 
 searchInput.addEventListener('input', () => {
     searchQuery = searchInput.value.trim();
-    currentPage = 1;
     renderBookmarks();
 });
 
@@ -1094,6 +1044,53 @@ function handleDrop(e) {
     }
 }
 
+
+// Delegate card actions and drag interactions once on the grid. This keeps large
+// continuous collections from allocating dozens of listeners per bookmark.
+bookmarksGrid.addEventListener('click', e => {
+    const button = e.target.closest?.('.card-actions button');
+    if (!button || !bookmarksGrid.contains(button)) return;
+    e.stopPropagation();
+    const card = button.closest('.bookmark-card');
+    const bookmark = bookmarks.find(item => String(item.id) === card?.dataset.id);
+    if (!card || !bookmark) return;
+    if (button.classList.contains('more-btn')) {
+        toggleCardActions(card.querySelector('.card-actions'));
+        return;
+    }
+    switch (button.dataset.action) {
+        case 'edit': {
+            openModal('edit', bookmark);
+            modalReturnFocus = card.querySelector('.more-btn');
+            modalReturnBookmark = String(bookmark.id);
+            break;
+        }
+        case 'delete': {
+            if (!confirm('确认删除【' + bookmark.title + '】？')) return;
+            const currentList = getFilteredBookmarks();
+            const index = currentList.findIndex(item => String(item.id) === String(bookmark.id));
+            const nextId = currentList[index + 1]?.id ?? currentList[index - 1]?.id;
+            if (!save(bookmarks.filter(item => String(item.id) !== String(bookmark.id)))) return;
+            renderAll();
+            if (nextId !== undefined) focusBookmark(nextId); else document.getElementById('addBtn').focus();
+            showToast('已删除 ' + bookmark.title, 'success');
+            break;
+        }
+        case 'move-up': moveBookmark(bookmark.id, -1); break;
+        case 'move-down': moveBookmark(bookmark.id, 1); break;
+    }
+});
+const cardForDragEvent = e => {
+    const card = e.target.closest?.('.bookmark-card');
+    return card && card.parentNode === bookmarksGrid ? card : null;
+};
+bookmarksGrid.addEventListener('dragstart', e => { const card = cardForDragEvent(e); if (card) handleDragStart.call(card, e); });
+bookmarksGrid.addEventListener('dragend', e => { const card = cardForDragEvent(e); if (card) handleDragEnd.call(card, e); });
+bookmarksGrid.addEventListener('dragover', e => { if (cardForDragEvent(e)) handleDragOver(e); });
+bookmarksGrid.addEventListener('dragenter', e => { const card = cardForDragEvent(e); if (card) handleDragEnter.call(card, e); });
+bookmarksGrid.addEventListener('dragleave', e => { const card = cardForDragEvent(e); if (card) handleDragLeave.call(card, e); });
+bookmarksGrid.addEventListener('drop', e => { const card = cardForDragEvent(e); if (card) handleDrop.call(card, e); });
+
 // ========== 拖拽排序：分类 ==========
 
 let draggedCategory = null;
@@ -1261,7 +1258,7 @@ function handleGlobalKeydown(e) {
     if (activeUtilityPanel) return;
     if (e.key === '/' && !isInputFocused()) { e.preventDefault(); searchInput.focus(); }
     if (e.key === 'Escape' && document.activeElement === searchInput) {
-        searchInput.blur(); searchInput.value = ''; searchQuery = ''; currentPage = 1; renderBookmarks();
+        searchInput.blur(); searchInput.value = ''; searchQuery = ''; renderBookmarks();
     }
 }
 document.addEventListener('keydown', handleGlobalKeydown);
@@ -1275,8 +1272,8 @@ function isInputFocused() {
 
 initTheme();
 initAccent();
-applyEffectiveColumns();
-initialized = true;
+applyColumnPreference();
+applyDensity();
 renderAll();
 
 // 自动聚焦搜索框
@@ -1301,7 +1298,7 @@ function importBookmarks(data) {
     // 单键同步写入成功后才更新内存；不创建或删除历史快照。
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
     catch (error) { showTaskError('导入失败：浏览器存储不可用或空间不足。当前收藏未改变，请检查权限或释放空间后重试。', 'data'); return false; }
-    bookmarks = next; storageDamaged = false; currentCategory = '全部'; currentPage = 1;
+    bookmarks = next; storageDamaged = false; currentCategory = '全部';
     document.getElementById('storageWarning').hidden = true;
     renderAll(); showToast(`导入成功，共 ${next.length} 个书签`, 'success'); return true;
 }
@@ -1318,14 +1315,4 @@ modal.addEventListener('keydown', e => {
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 });
 
-// Page controls never modify bookmark data or persisted column preferences.
-document.getElementById('prevPage').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderBookmarks(); } });
-document.getElementById('nextPage').addEventListener('click', () => { if (currentPage < totalPages) { currentPage++; renderBookmarks(); } });
-if (document.fonts?.ready) document.fonts.ready.then(refreshPageLayout);
-if (typeof ResizeObserver !== 'undefined') {
-    let previousSize = '';
-    new ResizeObserver(() => {
-        const size = `${bookmarksGrid.clientWidth}:${bookmarksGrid.clientHeight}`;
-        if (size !== previousSize) { previousSize = size; renderBookmarks(); }
-    }).observe(bookmarksGrid);
-}
+// Layout preferences are independent of viewport resize; CSS handles responsive reflow.

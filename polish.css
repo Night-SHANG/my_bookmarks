@@ -1,7 +1,7 @@
-/* 视觉组件与语义变量：沿用分页布局，统一状态、可读配色与输入适配。 */
+/* 视觉组件与语义变量：连续网格、双密度和可读交互状态。 */
 :root {
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px;
-  --size-hit: 32px; --size-control: 36px; --size-grid-row: 6.2666666667rem;
+  --size-hit: 32px; --size-control: 36px; --size-grid-row: 4.8rem;
   --font-small: .8rem; --font-label: .8666666667rem; --font-control: .9333333333rem;
   --layer-popover: 100; --layer-modal: 1000; --layer-feedback: 1100;
   --accent-text: #3f7528; --text-on-accent: #000000; --text-on-accent-hover: #000000; --text-on-accent-soft: #000000;
@@ -89,7 +89,7 @@ button:focus-visible, a:focus-visible {
 .brand-mark { display:block; flex:0 0 36px; width:36px; height:36px; margin:0; border-radius:11px; box-shadow:0 3px 7px rgba(35,77,51,.13); }
 .brand-mark [data-brand-fill] { transition:fill var(--duration-fast) ease; }
 .brand h1 { font-size: 1.266666667rem; font-weight: 700; letter-spacing: -.035em; }
-.category-bar { min-height: 0; flex: 1 1 0; gap: 5px; }
+.category-bar { min-height: 0; flex: 0 0 auto; gap: 5px; overflow: visible; }
 .cat-chip {
   min-height: 42px;
   border-radius: 10px;
@@ -319,3 +319,85 @@ button:focus-visible, a:focus-visible {
     box-shadow: none;
   }
 }
+
+
+/* Density is a persisted presentation preference, independent of columns and viewport. */
+html[data-density="comfortable"] { --size-grid-row: 7.4666666667rem; }
+.density-setting { display: grid; gap: 8px; margin: 2px 0 18px; }
+.density-setting > span { color: var(--text-secondary); font-size: var(--font-label); font-weight: 600; }
+.density-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.density-option {
+  min-height: 40px; padding: 7px 12px;
+  border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+  background: var(--bg-card); color: var(--text-secondary); font: inherit; cursor: pointer;
+}
+.density-option[aria-pressed="true"] {
+  border-color: var(--focus-color); background: var(--accent-dim);
+  color: var(--accent-text); font-weight: 600;
+}
+.density-option:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 2px; }
+html[data-density="comfortable"] .card-desc { display: block; }
+.bookmark-card > .bookmark-link {
+  min-width: 0; width: 100%; height: 100%; padding: 0 36px 0 0;
+  gap: 8px; content-visibility: auto;
+  contain-intrinsic-size: auto var(--card-height);
+}
+.bookmark-card .meta { min-width: 0; flex: 1 1 auto; }
+.bookmark-card .card-actions { flex: 0 0 auto; }
+
+/* Final layout overrides: fixed viewport shells and nested category scrolling are retired. */
+html, body { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; }
+.app { display: grid; grid-template-columns: 216px minmax(0,1fr); align-items: start; height: auto; min-height: 100dvh; max-width: none; margin: 0; overflow: visible; }
+.sidebar { position: static; align-self: start; height: auto; min-height: 100dvh; margin: 0; padding: 20px 12px 16px; gap: 20px; overflow: visible; }
+.category-bar { display: flex; flex-direction: column; flex: 0 0 auto; min-height: 0; gap: 5px; overflow: visible; }
+.workspace { min-width: 0; min-height: 0; max-width: none; padding: 24px 28px 18px; overflow: visible; }
+.collection { display: flex; flex: 0 0 auto; flex-direction: column; min-height: 0; }
+.bookmarks-grid { display: grid; flex: 0 0 auto; min-height: 0; grid-template-columns: repeat(var(--columns,4),minmax(0,1fr)); grid-template-rows: none; grid-auto-rows: var(--card-height); align-content: start; gap: 12px; overflow: visible; }
+.bookmark-card { display: flex; align-items: center; height: var(--card-height); min-height: var(--card-height); padding: 10px 12px; gap: 10px; overflow: visible; }
+.card-desc { display: none; }
+@media (max-width: 700px) {
+  .app { display: flex; flex-direction: column; min-height: 100dvh; }
+  .sidebar { width: 100%; height: auto; min-height: 0; margin: 0; padding: 18px 18px 0; gap: 12px; }
+  .category-bar { flex-direction: row; flex-wrap: wrap; flex: 0 0 auto; gap: 6px; padding: 0; overflow: visible; }
+  .sidebar-footer { display: flex; flex-wrap: wrap; gap: 4px; padding: 0; }
+  .workspace { width: 100%; padding: 18px; overflow: visible; }
+  .header-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+  .columns-toolbar { display: none; }
+  .bookmarks-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .bookmark-card { padding: 8px; gap: 7px; }
+}
+@media (max-width: 360px) { .bookmarks-grid { grid-template-columns: minmax(0,1fr); } }
+
+
+/* Wide cards remain horizontal; higher desktop column counts become compact launcher tiles. */
+@media (min-width: 701px) and (max-width: 1450px) {
+  html[data-column-layout="compact"] .bookmark-card > .bookmark-link {
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 0 28px 0 0; gap: 3px;
+  }
+  html[data-column-layout="compact"] .favicon {
+    flex: 0 0 28px; width: 28px; height: 28px; padding: 3px;
+  }
+  html[data-column-layout="compact"] .meta {
+    width: 100%; flex: 0 1 auto; text-align: center;
+  }
+  html[data-column-layout="compact"] .card-title {
+    width: 100%; text-align: center; font-size: .82rem;
+  }
+  html[data-column-layout="compact"] .card-url { display: none; }
+}
+@media (max-width: 700px) {
+  html[data-column-layout="compact"] .bookmark-card > .bookmark-link {
+    flex-direction: row; align-items: center; justify-content: flex-start;
+    padding: 0 36px 0 0; gap: 8px;
+  }
+  html[data-column-layout="compact"] .favicon {
+    flex: 0 0 32px; width: 32px; height: 32px; padding: 4px;
+  }
+  html[data-column-layout="compact"] .meta { text-align: left; }
+  html[data-column-layout="compact"] .card-title { text-align: left; font-size: .9rem; }
+  html[data-column-layout="compact"] .card-url { display: block; }
+}
+
+/* Higher-specificity sidebar rule prevents flex compression of category navigation. */
+.sidebar .category-bar { flex: 0 0 auto; min-height: 0; overflow: visible; }

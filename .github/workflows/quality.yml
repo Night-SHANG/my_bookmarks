@@ -1,7 +1,7 @@
 name: Navigation quality gates
 on:
   push:
-    branches: ['feat/bookmarks-visual-redesign', 'feat/bookmarks-ui-polish']
+    branches: ['feat/bookmarks-visual-redesign', 'feat/bookmarks-ui-polish', 'fix/continuous-grid-density']
   pull_request:
     branches: [main]
 permissions:
