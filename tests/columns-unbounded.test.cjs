@@ -7,7 +7,9 @@ const start=source.indexOf('function getColumns()');
 const end=source.indexOf('function brandIconSvg(');
 assert.ok(start>=0&&end>start,'column functions must be defined before brand icon functions');
 function setup(saved=null){
- let stored=saved,writable=true;const vars={},attrs={},controls={colsIncrease:{addEventListener(){}},colsDecrease:{addEventListener(){}},densityCompactBtn:{addEventListener(){}},densityComfortableBtn:{addEventListener(){}}},errors=[];
+ let stored=saved,writable=true;const vars={},attrs={},button=()=>({disabled:false,addEventListener(type,fn){this[type]=fn;},click(){if(!this.disabled)this.clickHandler?.();}}),controls={colsIncrease:button(),colsDecrease:button(),densityCompactBtn:button(),densityComfortableBtn:button()},errors=[];
+ controls.colsIncrease.addEventListener=(type,fn)=>{controls.colsIncrease.clickHandler=fn;};
+ controls.colsDecrease.addEventListener=(type,fn)=>{controls.colsDecrease.clickHandler=fn;};
  const context=vm.createContext({
   COLUMNS_KEY:'nav_columns',
   colsDisplay:{textContent:'',title:'',setAttribute:(k,v)=>attrs[k]=v},
@@ -30,8 +32,8 @@ for(const value of [1,3,7,9,11,16,32,100,1000000000000]){
   assert.equal(s.apply(),visible);
   assert.equal(s.vars['--columns'],String(visible));
   assert.equal(s.context.colsDisplay.textContent,visible+'列');
-  assert.equal(s.controls.colsDecrease.disabled,value===1);
-  assert.equal(s.controls.colsIncrease.disabled,false);
+  assert.equal(s.controls.colsDecrease.disabled,visible===1);
+  assert.equal(s.controls.colsIncrease.disabled,visible===9);
   assert.equal(s.stored(),String(value));
  });
 }
@@ -61,4 +63,24 @@ test('effective columns adapt to available width while saved preference remains 
  assert.equal(s.apply(),6);
  assert.equal(s.get(),8);
  assert.equal(s.stored(),'8');
+});
+
+test('column buttons operate on the visible count and cannot accumulate hidden increments',()=>{
+ const s=setup('100');
+ assert.equal(s.apply(),9);
+ assert.equal(s.controls.colsIncrease.disabled,true);
+ s.controls.colsIncrease.click();
+ assert.equal(s.stored(),'100');
+ s.controls.colsDecrease.click();
+ assert.equal(s.stored(),'8');
+ assert.equal(s.apply(),8);
+ s.controls.colsIncrease.click();
+ assert.equal(s.stored(),'9');
+ assert.equal(s.apply(),9);
+ assert.equal(s.controls.colsIncrease.disabled,true);
+ s.controls.colsIncrease.click();
+ assert.equal(s.stored(),'9');
+ s.controls.colsDecrease.click();
+ assert.equal(s.stored(),'8');
+ assert.equal(s.apply(),8);
 });
